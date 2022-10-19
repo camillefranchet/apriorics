@@ -39,7 +39,7 @@ patches:
   level: 0
   overlap: 0.1
   filter-pos: 0
-  overwrite: true
+  overwrite: false
 
 train:
   patch-size: 224
@@ -54,6 +54,7 @@ train:
   model: unet/resnet50
   loss: bce
   fold: 0
+  p_pos: 0.9
 
 evaluate:
   area-threshold: 50
