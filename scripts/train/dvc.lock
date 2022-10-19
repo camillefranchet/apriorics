@@ -2,14 +2,14 @@ schema: '2.0'
 stages:
   slide_download:
     cmd: python ../utils/file_transfer.py --out-csv .downloaded_slides.csv --data-path
-      '/data/anapath/AprioricsSlides' --ihc-type 'PHH3' --mapping-file '../../ihc_mapping.json'
+      '/data/anapath/AprioricsSlides' --ihc-type 'AE1AE3' --mapping-file '../../ihc_mapping.json'
       --mask-extension '.tif' --remote-path '/media/AprioricsSlides' --slide-extension
-      '.svs' --seed 42 --clean-previous --extension .svs --rel-path slides --remote-rel-path
-      .
+      '.svs' --seed 42 --clean-previous --add-tree --extension .svs --rel-path slides
+      --remote-rel-path .
     outs:
     - path: .downloaded_slides.csv
-      md5: b22086e2f3720da570407aeff2b49b12
-      size: 67649
+      md5: a9cd34b77800068fa1ad8eff1ce98fb9
+      size: 134370
   generate_patch_csvs:
     cmd: python generate_patch_dataset.py --data-path '/data/anapath/AprioricsSlides'
       --ihc-type 'AE1AE3' --mapping-file '../../ihc_mapping.json' --mask-extension
