@@ -21,14 +21,14 @@ stages:
       md5: b22086e2f3720da570407aeff2b49b12
       size: 67649
     - path: /data/anapath/AprioricsSlides/masks/PHH3
-      md5: 951222c874246fb4382aab3e2a054872.dir
-      size: 193781204068
-      nfiles: 386
+      md5: 0112823145aea68d82e7b628c73e15ca.dir
+      size: 243129631097
+      nfiles: 485
     outs:
     - path: /data/anapath/AprioricsSlides/train/PHH3/256_0/patch_csvs
-      md5: af2e4db63cdaed85e1dd786e02a95a87.dir
-      size: 925185768
-      nfiles: 386
+      md5: 3cf5ae7e9c3f8b840e2c87ba2293281c.dir
+      size: 1149034511
+      nfiles: 485
   split_dataset:
     cmd: python split_dataset.py --maskfolder /data/anapath/AprioricsSlides/masks
       --out-csv /data/anapath/AprioricsSlides/train/PHH3/splits_new.csv --data-path
@@ -40,13 +40,13 @@ stages:
       md5: b22086e2f3720da570407aeff2b49b12
       size: 67649
     - path: /data/anapath/AprioricsSlides/masks/PHH3
-      md5: 951222c874246fb4382aab3e2a054872.dir
-      size: 193781204068
-      nfiles: 386
+      md5: 0112823145aea68d82e7b628c73e15ca.dir
+      size: 243129631097
+      nfiles: 485
     outs:
     - path: /data/anapath/AprioricsSlides/train/PHH3/splits_new.csv
-      md5: baeef17c0dfd18faba62affa19df4ca2
-      size: 4761
+      md5: c01938788372b60bab4e023a69c64067
+      size: 5979
   train:
     cmd: python train_segmentation.py --hash-file .model_hash.yaml --data-path '/data/anapath/AprioricsSlides'
       --ihc-type 'PHH3' --mapping-file '../../ihc_mapping.json' --mask-extension '.tif'
@@ -56,13 +56,13 @@ stages:
       splits_new.csv --base-size 256 --slidefolder /data/anapath/AprioricsSlides/slides
       --maskfolder /data/anapath/AprioricsSlides/masks --trainfolder /data/anapath/AprioricsSlides/train
     deps:
-    - path: /data/anapath/AprioricsSlides/train/PHH3/256_0/patch_csvs
-      md5: 84ac60433914cfc13cbbc1887633ce0a.dir
-      size: 4152043
-      nfiles: 386
+    - path: /data/anapath/AprioricsSlides/masks/PHH3
+      md5: 0112823145aea68d82e7b628c73e15ca.dir
+      size: 243129631097
+      nfiles: 485
     - path: /data/anapath/AprioricsSlides/train/PHH3/splits_new.csv
-      md5: baeef17c0dfd18faba62affa19df4ca2
-      size: 4761
+      md5: c01938788372b60bab4e023a69c64067
+      size: 5979
     outs:
     - path: .model_hash.yaml
       md5: 17025460ee655551b2fe6e6f30c50dd9
