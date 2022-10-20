@@ -39,7 +39,7 @@ patches:
   level: 0
   overlap: -2
   filter-pos: 0
-  overwrite: true
+  overwrite: false
 
 train:
   patch-size: 224
@@ -48,7 +48,7 @@ train:
   batch-size: 32
   lr: 2e-4
   wd: 0.01
-  epochs: 10
+  epochs: 5
   num-workers: 32
   scheduler: one-cycle
   model: unet/resnet50
