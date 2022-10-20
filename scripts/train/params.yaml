@@ -39,7 +39,7 @@ patches:
   level: 0
   overlap: -2
   filter-pos: 0
-  overwrite: true
+  overwrite: false
 
 train:
   patch-size: 224
