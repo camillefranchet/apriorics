@@ -70,7 +70,6 @@ stages:
       python predict_export_geojsons.py
       --outfolder ${base.data-path}/${local.evaluate-path}
       --slidefolder ${base.data-path}/${local.slide-path}
-      --maskfolder ${base.data-path}/${local.mask-path}
       --trainfolder ${base.data-path}/${local.train-path}
       --version ${hash}
       --splitfile ${split.filename}
@@ -84,18 +83,6 @@ stages:
     outs:
       - ${base.data-path}/${local.evaluate-path}/${base.ihc-type}/${hash}/geojsons:
           persist: true
-      - ${base.data-path}/${local.evaluate-path}/${base.ihc-type}/${hash}/metrics.json:
-          persist: true
-
-  metrics_upload:
-    vars:
-      - .model_hash.yaml:hash
-    cmd: >-
-      rsync
-      ${base.data-path}/${local.evaluate-path}/${base.ihc-type}/${hash}/metrics.json
-      ${base.remote-path}/${remote.evaluate-path}/${base.ihc-type}/${hash}/metrics.json
-    deps:
-      - ${base.data-path}/${local.evaluate-path}/${base.ihc-type}/${hash}/metrics.json
 
   geojson_upload:
     vars:

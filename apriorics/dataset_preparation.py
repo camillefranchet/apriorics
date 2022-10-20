@@ -33,7 +33,7 @@ def split_data_k_fold(
     if isinstance(test_size, float):
         test_size = ceil(test_size * n)
 
-    p = np.ones(k)
+    p = np.ones(k) / k
 
     if previous_splits is not None:
         n_per_fold = (n - test_size) / k
@@ -52,11 +52,10 @@ def split_data_k_fold(
 
                 p[i] = n_fold / n_to_add
 
-    p /= p.sum()
-
     n = len(data)
     test_idxs = rng.choice(np.arange(n), size=test_size, replace=False)
     test_data = data[test_idxs]
+
     data = np.delete(data, test_idxs)
     folds = rng.choice(np.arange(k), size=len(data), p=p)
 

@@ -80,7 +80,7 @@ if __name__ == "__main__":
             outfolder.mkdir(parents=True)
 
         outfile = outfolder / f"{info['block']}{file.suffix}"
-        if not (outfile.exists() and outfile.stat().st_size == file.stat().st_size):
+        if not outfile.exists():
             print(outfile)
             shutil.copyfile(file, outfile)
         return file.stem, str(outfile)

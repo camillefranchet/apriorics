@@ -6,7 +6,6 @@ import geopandas
 import pandas as pd
 import torch
 from albumentations import Crop
-from metrics_config import METRICS
 from pathaia.util.paths import get_files
 from pytorch_lightning.utilities.seed import seed_everything
 from shapely.affinity import translate
@@ -14,10 +13,9 @@ from shapely.geometry import MultiPolygon, Polygon
 from shapely.ops import unary_union
 from timm import create_model
 from torch.utils.data import DataLoader
-from torchmetrics import MetricCollection
 from tqdm import tqdm
 
-from apriorics.data import SegmentationDataset
+from apriorics.data import TestDataset
 from apriorics.model_components.normalization import group_norm
 from apriorics.plmodules import BasicSegmentationModule
 from apriorics.polygons import mask_to_polygons_layer
@@ -69,12 +67,6 @@ parser.add_argument(
     "--slidefolder",
     type=Path,
     help="Input folder containing svs slide files.",
-    required=True,
-)
-parser.add_argument(
-    "--maskfolder",
-    type=Path,
-    help="Input folder containing mask files.",
     required=True,
 )
 parser.add_argument(
@@ -150,11 +142,6 @@ parser.add_argument(
     help="File extension of slide files. Default .svs.",
 )
 parser.add_argument(
-    "--mask-extension",
-    default=".tif",
-    help="File extension of mask files. Default .tif.",
-)
-parser.add_argument(
     "--fold", default="test", help="Fold to use for test. Default test."
 )
 
@@ -167,17 +154,16 @@ if __name__ == "__main__":
     trainfolder = args.trainfolder / args.ihc_type
     patch_csv_folder = trainfolder / f"{args.base_size}_{args.level}/patch_csvs"
     slidefolder = args.slidefolder / args.ihc_type / "HE"
-    maskfolder = args.maskfolder / args.ihc_type / "HE"
     logfolder = args.trainfolder / "logs"
 
     patches_paths = get_files(
         patch_csv_folder, extensions=".csv", recurse=False
     ).sorted(key=lambda x: x.stem)
     slide_paths = patches_paths.map(
-        lambda x: slidefolder / x.with_suffix(args.slide_extension).name
-    )
-    mask_paths = patches_paths.map(
-        lambda x: maskfolder / x.with_suffix(args.mask_extension).name
+        lambda x: args.slidefolder
+        / args.ihc_type
+        / "HE"
+        / x.with_suffix(args.slide_extension).name
     )
 
     split_df = pd.read_csv(
@@ -202,11 +188,6 @@ if __name__ == "__main__":
         norm_layer=group_norm if args.group_norm else torch.nn.BatchNorm2d,
     ).eval()
     model.requires_grad_(False)
-
-    metrics = METRICS["all"]
-    if args.ihc_type in METRICS:
-        metrics.append(METRICS[args.ihc_type])
-    metrics = MetricCollection(metrics)
 
     model = BasicSegmentationModule(
         model,
@@ -239,11 +220,10 @@ if __name__ == "__main__":
         polygons = []
         for crop in crops:
             print(crop)
-            ds = SegmentationDataset(
+            ds = TestDataset(
                 slide_path,
-                mask_paths,
                 patches_path,
-                transforms=[Crop(*crop), ToTensor()],
+                [Crop(*crop), ToTensor()],
             )
             dl = DataLoader(
                 ds,
@@ -253,11 +233,9 @@ if __name__ == "__main__":
                 pin_memory=True,
             )
 
-            for batch_idx, (x, y) in tqdm(enumerate(dl), total=len(dl)):
-                y_hat = torch.sigmoid(model(x.to(device)))
-                metrics(y_hat, y.int())
-                y_hat = y_hat.cpu().numpy() > 0.5
-                for k, mask in enumerate(y_hat):
+            for batch_idx, x in tqdm(enumerate(dl), total=len(dl)):
+                y = torch.sigmoid(model(x.to(device))).squeeze(1).cpu().numpy() > 0.5
+                for k, mask in enumerate(y):
                     if not mask.sum():
                         continue
                     idx = batch_idx * args.batch_size + k
@@ -278,12 +256,6 @@ if __name__ == "__main__":
                         for pol in polygon.geoms:
                             if pol.area > args.area_threshold:
                                 polygons.append(pol)
-        metrics_results = metrics.compute()
-        metrics_results = {
-            k: v.item() if isinstance(v, torch.Tensor) else v
-            for k, v in metrics_results.items()
-        }
-
         polygons = unary_union(polygons)
         if isinstance(polygons, Polygon):
             polygons = MultiPolygon(polygons=[polygons])
@@ -291,9 +263,5 @@ if __name__ == "__main__":
         outfolder = args.outfolder / args.ihc_type / args.version / "geojsons"
         if not outfolder.exists():
             outfolder.mkdir(parents=True)
-
-        with open(outfolder.parent / "metrics.json", "w") as f:
-            json.dump(metrics_results, f)
-
         with open(outfolder / f"{slide_path.stem}.geojson", "w") as f:
             json.dump(geopandas.GeoSeries(polygons.geoms).__geo_interface__, f)

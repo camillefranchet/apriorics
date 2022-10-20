@@ -138,6 +138,3 @@ pathaia/
 
 .downloaded_slides.csv
 .model_hash.yaml
-
-
-*.ipynb
