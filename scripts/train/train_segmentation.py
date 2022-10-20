@@ -16,13 +16,13 @@ from albumentations import (
     RandomRotate90,
     Transpose,
 )
+from metrics_config import METRICS
 from pathaia.util.paths import get_files
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import CometLogger
 from pytorch_lightning.utilities.seed import seed_everything
 from timm import create_model
 from torch.utils.data import DataLoader
-from torchmetrics import Accuracy, JaccardIndex, Precision, Recall, Specificity
 
 from apriorics.data import (
     BalancedRandomSampler,
@@ -30,7 +30,6 @@ from apriorics.data import (
     ValidationPositiveSampler,
 )
 from apriorics.losses import get_loss
-from apriorics.metrics import DetectionSegmentationMetrics, DiceScore
 from apriorics.model_components.normalization import group_norm
 from apriorics.plmodules import BasicSegmentationModule, get_scheduler_func
 from apriorics.stain_augment import StainAugmentor
@@ -212,6 +211,15 @@ parser.add_argument(
 parser.add_argument(
     "--fold", default="0", help="Fold to use for validation. Default 0."
 )
+parser.add_argument(
+    "--p-pos",
+    type=float,
+    default=0.9,
+    help=(
+        "Percentage of masks containing positive pixels to use for training. Default "
+        "0.9."
+    ),
+)
 
 if __name__ == "__main__":
     __spec__ = None
@@ -252,6 +260,7 @@ if __name__ == "__main__":
         RandomBrightnessContrast(),
         ToTensor(),
     ]
+    k = None
     train_ds = SegmentationDataset(
         slide_paths[train_idxs],
         mask_paths[train_idxs],
@@ -271,12 +280,14 @@ if __name__ == "__main__":
         pin_memory=True,
         num_workers=args.num_workers,
         drop_last=True,
-        sampler=BalancedRandomSampler(train_ds, p_pos=0.95),
+        sampler=BalancedRandomSampler(train_ds, p_pos=args.p_pos),
     )
+
+    num_samples = int(1 / args.p_pos * (val_ds.n_pos > 0).sum())
     val_dl = DataLoader(
         val_ds,
         batch_size=args.batch_size,
-        # sampler=ValidationPositiveSampler(val_ds),
+        sampler=ValidationPositiveSampler(val_ds, num_samples=num_samples),
         shuffle=False,
         pin_memory=True,
         num_workers=args.num_workers,
@@ -302,21 +313,16 @@ if __name__ == "__main__":
         norm_layer=group_norm if args.group_norm else torch.nn.BatchNorm2d,
     )
 
+    metrics = METRICS["all"]
+    if args.ihc_type in METRICS:
+        metrics.append(METRICS[args.ihc_type])
     plmodule = BasicSegmentationModule(
         model,
         loss=get_loss(args.loss),
         lr=args.lr,
         wd=args.wd,
         scheduler_func=scheduler_func,
-        metrics=[
-            JaccardIndex(2),
-            DiceScore(),
-            Accuracy(),
-            Precision(),
-            Recall(),
-            Specificity(),
-            DetectionSegmentationMetrics(),
-        ],
+        metrics=metrics,
         stain_augmentor=StainAugmentor() if args.augment_stain else None,
     )
 

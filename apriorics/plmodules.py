@@ -135,6 +135,7 @@ class BasicSegmentationModule(pl.LightningModule):
 
     def validation_epoch_end(self, outputs: Dict[str, Tensor]):
         self.log_dict(self.metrics.compute(), sync_dist=True)
+        self.metrics.reset()
 
     def configure_optimizers(
         self,
@@ -258,6 +259,8 @@ class BasicDetectionModule(pl.LightningModule):
     def validation_epoch_end(self, outputs: Dict[str, Tensor]):
         self.log_dict(self.seg_metrics.compute(), sync_dist=True)
         det_dict = self.det_metrics.compute()
+        self.seg_metrics.reset()
+        self.det_metrics.reset()
         det_dict = {
             k: v
             for k, v in det_dict.items()

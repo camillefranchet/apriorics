@@ -103,13 +103,13 @@ if __name__ == "__main__":
     )
 
     interval = -int(args.overlap * args.patch_size)
+    if not outfolder.exists():
+        outfolder.mkdir(parents=True)
 
     def write_patches(in_file_path):
         out_file_path = outfolder / in_file_path.with_suffix(".csv").name
         if not args.overwrite and out_file_path.exists():
             return
-        if not out_file_path.parent.exists():
-            out_file_path.parent.mkdir(parents=True)
 
         mask_path = args.maskfolder / in_file_path.relative_to(
             args.slidefolder

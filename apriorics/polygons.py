@@ -3,12 +3,15 @@ from numbers import Number
 from os import PathLike
 from typing import Any, Optional
 
+import geopandas
 import numpy as np
+from albumentations.augmentations.crops.functional import get_center_crop_coords
 from nptyping import NDArray
 from pathaia.util.types import NDBoolMask
 from rasterio import features
-from shapely.affinity import affine_transform
+from shapely.affinity import affine_transform, translate
 from shapely.geometry import MultiPolygon, Polygon, shape
+from shapely.ops import clip_by_rect
 
 
 def get_reduced_coords(
@@ -135,3 +138,40 @@ def hovernet_to_wkt(
 
     with open(outfile, "w") as f:
         f.write(polygons.wkt)
+
+
+def hovernet_to_geojson(
+    infile: PathLike,
+    outfile: PathLike,
+    crop_size: Optional[int] = None,
+    xoff: Optional[int] = None,
+    yoff: Optional[int] = None,
+):
+    """
+    Take a hovernet json output file and convert it to a geojson file. Optionally crop
+    the center of the polygons.
+
+    Args:
+        infile: path to input hovernet json file.
+        outfile: path to output wkt file.
+        crop_size: Size of the crop zone.
+    """
+    with open(infile, "r") as f:
+        hovernet_dict = json.load(f)
+    polygons = []
+    for k in hovernet_dict["nuc"]:
+        polygon = Polygon(hovernet_dict["nuc"][k]["contour"])
+        if polygon.is_valid:
+            polygons.append(polygon)
+    polygons = MultiPolygon(polygons)
+
+    if crop_size is not None:
+        xmin, ymin, xmax, ymax = polygons.bounds
+        x0, y0, x1, y1 = get_center_crop_coords(
+            ymax - ymin, xmax - xmin, crop_size, crop_size
+        )
+        polygons = clip_by_rect(polygons, x0 + xmin, y0 + ymin, x1 + xmin, y1 + ymin)
+        polygons = translate(polygons, xoff=xoff, yoff=yoff)
+
+    with open(outfile, "w") as f:
+        json.dump(geopandas.GeoSeries(polygons.geoms).__geo_interface__, f)
