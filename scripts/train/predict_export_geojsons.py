@@ -3,6 +3,7 @@ from argparse import ArgumentParser
 from pathlib import Path
 
 import geopandas
+import numpy as np
 import pandas as pd
 import torch
 from albumentations import Crop
@@ -205,8 +206,8 @@ if __name__ == "__main__":
 
     metrics = METRICS["all"]
     if args.ihc_type in METRICS:
-        metrics.append(METRICS[args.ihc_type])
-    metrics = MetricCollection(metrics)
+        metrics.extend(METRICS[args.ihc_type])
+    metrics = MetricCollection(metrics).to(device)
 
     model = BasicSegmentationModule(
         model,
@@ -234,15 +235,18 @@ if __name__ == "__main__":
     else:
         crops = [(0, 0, args.base_size, args.base_size)]
 
-    for slide_path, patches_path in zip(slide_paths[val_idxs], patches_paths[val_idxs]):
+    all_metrics = {}
+    for slide_path, mask_path, patches_path in zip(
+        slide_paths[val_idxs], mask_paths[val_idxs], patches_paths[val_idxs]
+    ):
         print(slide_path.stem)
         polygons = []
         for crop in crops:
             print(crop)
             ds = SegmentationDataset(
-                slide_path,
-                mask_paths,
-                patches_path,
+                [slide_path],
+                [mask_path],
+                [patches_path],
                 transforms=[Crop(*crop), ToTensor()],
             )
             dl = DataLoader(
@@ -255,7 +259,7 @@ if __name__ == "__main__":
 
             for batch_idx, (x, y) in tqdm(enumerate(dl), total=len(dl)):
                 y_hat = torch.sigmoid(model(x.to(device)))
-                metrics(y_hat, y.int())
+                metrics(y_hat, y.int().to(device))
                 y_hat = y_hat.cpu().numpy() > 0.5
                 for k, mask in enumerate(y_hat):
                     if not mask.sum():
@@ -278,11 +282,6 @@ if __name__ == "__main__":
                         for pol in polygon.geoms:
                             if pol.area > args.area_threshold:
                                 polygons.append(pol)
-        metrics_results = metrics.compute()
-        metrics_results = {
-            k: v.item() if isinstance(v, torch.Tensor) else v
-            for k, v in metrics_results.items()
-        }
 
         polygons = unary_union(polygons)
         if isinstance(polygons, Polygon):
@@ -292,8 +291,28 @@ if __name__ == "__main__":
         if not outfolder.exists():
             outfolder.mkdir(parents=True)
 
-        with open(outfolder.parent / "metrics.json", "w") as f:
-            json.dump(metrics_results, f)
-
         with open(outfolder / f"{slide_path.stem}.geojson", "w") as f:
             json.dump(geopandas.GeoSeries(polygons.geoms).__geo_interface__, f)
+
+        metrics_results = metrics.compute()
+        metrics_results = {
+            k: v.item() if isinstance(v, torch.Tensor) else v
+            for k, v in metrics_results.items()
+        }
+
+        outfolder = outfolder.parent / "metrics"
+        if not outfolder.exists():
+            outfolder.mkdir()
+
+        with open(outfolder / f"{slide_path.stem}.json", "w") as f:
+            json.dump(metrics_results, f)
+
+        for k, v in metrics_results.items():
+            if k not in all_metrics:
+                all_metrics[k] = []
+            all_metrics[k].append(v)
+        metrics.reset()
+
+    all_metrics = {k: np.mean(v) for k, v in all_metrics.items()}
+    with open(outfolder.parent / "average_metrics.json", "w") as f:
+        json.dump(all_metrics, f)
