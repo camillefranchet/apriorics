@@ -135,6 +135,25 @@ class BasicSegmentationModule(pl.LightningModule):
 
     def validation_epoch_end(self, outputs: Dict[str, Tensor]):
         self.log_dict(self.metrics.compute(), sync_dist=True)
+        if "SegmentationAUC" in self.metrics:
+            met = self.metrics["SegmentationAUC"]
+            rec = (met.tp / (met.tp + met.fn)).cpu()
+            fpr = (met.fp / (met.tn + met.fp)).cpu()
+            prec = (met.tp / (met.tp + met.fp)).cpu()
+            self.logger.experiment.log_curve(
+                f"ROC_{self.current_epoch}",
+                x=fpr.tolist(),
+                y=rec.tolist(),
+                step=self.current_epoch,
+                overwrite=True,
+            )
+            self.logger.experiment.log_curve(
+                f"PRC_{self.current_epoch}",
+                x=rec.tolist(),
+                y=prec.tolist(),
+                step=self.current_epoch,
+                overwrite=True,
+            )
         self.metrics.reset()
 
     def configure_optimizers(

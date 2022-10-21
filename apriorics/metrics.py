@@ -174,7 +174,9 @@ class SegmentationAUC(Metric):
     def compute(self):
         tpr = self.tp / (self.tp + self.fn)
         fpr = self.fp / (self.tn + self.fp)
-        return -torch.trapz(tpr, fpr)
+        prec = self.tp / (self.tp + self.fp)
+        res = {"AUROC": -torch.trapz(tpr, fpr), "AUPRC": -torch.trapz(prec, tpr)}
+        return res
 
 
 class DetectionSegmentationMetrics(Metric):
