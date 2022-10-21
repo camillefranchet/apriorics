@@ -315,7 +315,7 @@ if __name__ == "__main__":
 
     metrics = METRICS["all"]
     if args.ihc_type in METRICS:
-        metrics.append(METRICS[args.ihc_type])
+        metrics.extend(METRICS[args.ihc_type])
     plmodule = BasicSegmentationModule(
         model,
         loss=get_loss(args.loss),

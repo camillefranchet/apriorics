@@ -185,7 +185,9 @@ class DetectionSegmentationMetrics(Metric):
         **kwargs
     ):
         super().__init__(**kwargs)
-        self.iou_thresholds = ifnone(iou_thresholds, torch.arange(0, 1, 0.05).tolist())
+        self.iou_thresholds = ifnone(
+            iou_thresholds, np.arange(0, 1, 0.05).round(2).tolist()
+        )
         self.clf_threshold = clf_threshold
 
         self.add_state(
