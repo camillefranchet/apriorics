@@ -184,6 +184,7 @@ class DetectionSegmentationMetrics(Metric):
         self,
         iou_thresholds: Optional[Sequence[float]] = None,
         clf_threshold: float = 0.5,
+        area_threshold: int = 50,
         **kwargs
     ):
         super().__init__(**kwargs)
@@ -191,6 +192,7 @@ class DetectionSegmentationMetrics(Metric):
             iou_thresholds, np.arange(0, 1, 0.05).round(2).tolist()
         )
         self.clf_threshold = clf_threshold
+        self.area_threshold = area_threshold
 
         self.add_state(
             "tp",
@@ -213,6 +215,16 @@ class DetectionSegmentationMetrics(Metric):
             labels_pred, n_pred = label(
                 (y > self.clf_threshold).detach().cpu().numpy(), return_num=True
             )
+            to_substract = 0
+            for k_pred in range(n_pred):
+                mask_pred = labels_pred == (k_pred + 1)
+                if mask_pred.sum() > self.area_threshold:
+                    labels_pred[mask_pred] = 0
+                    to_substract += 1
+                    n_pred -= 1
+                else:
+                    labels_pred[mask_pred] -= to_substract
+
             labels_target, n_target = label(y_hat.bool().cpu().numpy(), return_num=True)
             if n_target == 0:
                 self.fp += n_pred
