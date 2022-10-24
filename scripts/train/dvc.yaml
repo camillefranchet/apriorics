@@ -82,33 +82,16 @@ stages:
       - .model_hash.yaml
       - ${base.data-path}/${local.train-path}/logs
     outs:
-      - ${base.data-path}/${local.evaluate-path}/${base.ihc-type}/${hash}/geojsons:
-          persist: true
-      - ${base.data-path}/${local.evaluate-path}/${base.ihc-type}/${hash}/metrics.json:
+      - ${base.data-path}/${local.evaluate-path}/${base.ihc-type}/${hash}:
           persist: true
 
-  metrics_upload:
+  evaluate_upload:
     vars:
       - .model_hash.yaml:hash
     cmd: >-
-      rsync
-      ${base.data-path}/${local.evaluate-path}/${base.ihc-type}/${hash}/metrics.json
-      ${base.remote-path}/${remote.evaluate-path}/${base.ihc-type}/${hash}/metrics.json
+      rsync -avu
+      ${base.data-path}/${local.evaluate-path}/${base.ihc-type}/${hash}
+      ${base.remote-path}/${remote.evaluate-path}/${base.ihc-type}/
     deps:
-      - ${base.data-path}/${local.evaluate-path}/${base.ihc-type}/${hash}/metrics.json
-
-  geojson_upload:
-    vars:
-      - .model_hash.yaml:hash
-    cmd: >-
-      python ../utils/file_transfer.py
-      --data-path ${base.remote-path}
-      --remote-path ${base.data-path}
-      --ihc-type ${base.ihc-type}
-      --mapping-file ${base.mapping-file}
-      --extension .geojson
-      --rel-path ${remote.evaluate-path}/${base.ihc-type}/${hash}/geojsons
-      --remote-rel-path ${local.evaluate-path}/${base.ihc-type}/${hash}/geojsons
-    deps:
-      - ${base.data-path}/${local.evaluate-path}/${base.ihc-type}/${hash}/geojsons
+      - ${base.data-path}/${local.evaluate-path}/${base.ihc-type}/${hash}/
     
