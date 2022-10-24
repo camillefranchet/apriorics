@@ -73,33 +73,32 @@ stages:
       nfiles: 36
   evaluate:
     cmd: python predict_export_geojsons.py --outfolder /data/anapath/AprioricsSlides/evaluate
-      --slidefolder /data/anapath/AprioricsSlides/slides --trainfolder /data/anapath/AprioricsSlides/train
-      --version ded42532bb854013b19b85b14c5aabdb --splitfile splits_new.csv --base-size
-      256 --data-path '/data/anapath/AprioricsSlides' --ihc-type 'PHH3' --mapping-file
-      '../../ihc_mapping.json' --mask-extension '.tif' --remote-path '/media/AprioricsSlides'
-      --slide-extension '.svs' --seed 42 --patch-size 224 --level 0 --gpu 0 --batch-size
-      32 --lr 0.0002 --wd 0.01 --epochs 10 --num-workers 32 --scheduler 'one-cycle'
-      --model 'unet/resnet50' --loss 'bce' --fold 0 --area-threshold 50
+      --slidefolder /data/anapath/AprioricsSlides/slides --maskfolder /data/anapath/AprioricsSlides/masks
+      --trainfolder /data/anapath/AprioricsSlides/train --version 28766d6cd6a54e32b5d0fd5887b9d254
+      --splitfile splits_new.csv --base-size 256 --data-path '/data/anapath/AprioricsSlides'
+      --ihc-type 'PHH3' --mapping-file '../../ihc_mapping.json' --mask-extension '.tif'
+      --remote-path '/media/AprioricsSlides' --slide-extension '.svs' --seed 42 --patch-size
+      224 --level 0 --gpu 0 --batch-size 32 --lr 0.0002 --wd 0.01 --epochs 20 --num-workers
+      32 --scheduler 'one-cycle' --model 'unet/resnet50' --loss 'bce' --fold 0 --p_pos
+      0.9 --area-threshold 50
     deps:
     - path: .model_hash.yaml
-      md5: 17025460ee655551b2fe6e6f30c50dd9
+      md5: 9683ddfefb4b2d61df9ddbf7a4596f3e
       size: 39
     - path: /data/anapath/AprioricsSlides/train/logs
-      md5: 673299204c124f4138a7b08c83987d70.dir
-      size: 18272054349
-      nfiles: 32
+      md5: 9d54c73ee280f1ed835844eea426202f.dir
+      size: 20851018379
+      nfiles: 36
     outs:
-    - path: /data/anapath/AprioricsSlides/evaluate/PHH3/ded42532bb854013b19b85b14c5aabdb/geojsons
-      md5: 9d6be7d7c6e392fceeb82aa18e0b4f36.dir
-      size: 9237358
-      nfiles: 73
-  geojson_upload:
-    cmd: python ../utils/file_transfer.py --data-path /media/AprioricsSlides --remote-path
-      /data/anapath/AprioricsSlides --ihc-type PHH3 --mapping-file ../../ihc_mapping.json
-      --extension .geojson --rel-path evaluate/PHH3/ded42532bb854013b19b85b14c5aabdb/geojsons
-      --remote-rel-path evaluate/PHH3/ded42532bb854013b19b85b14c5aabdb/geojsons
+    - path: /data/anapath/AprioricsSlides/evaluate/PHH3/28766d6cd6a54e32b5d0fd5887b9d254
+      md5: fcea86f7598c461a18b088a0c28a6a58.dir
+      size: 108687795
+      nfiles: 177
+  evaluate_upload:
+    cmd: rsync /data/anapath/AprioricsSlides/evaluate/PHH3/28766d6cd6a54e32b5d0fd5887b9d254/
+      /media/AprioricsSlides/evaluate/PHH3/28766d6cd6a54e32b5d0fd5887b9d254/
     deps:
-    - path: /data/anapath/AprioricsSlides/evaluate/PHH3/ded42532bb854013b19b85b14c5aabdb/geojsons
-      md5: 9d6be7d7c6e392fceeb82aa18e0b4f36.dir
-      size: 9237358
-      nfiles: 73
+    - path: /data/anapath/AprioricsSlides/evaluate/PHH3/28766d6cd6a54e32b5d0fd5887b9d254/
+      md5: fcea86f7598c461a18b088a0c28a6a58.dir
+      size: 108687795
+      nfiles: 177
