@@ -37,12 +37,12 @@ split:
 patches:
   patch-size: 256
   level: 0
-  overlap: -2
+  overlap: 0
   filter-pos: 0
-  overwrite: false
+  overwrite: true
 
 train:
-  patch-size: 224
+  patch-size: 256
   level: 0
   gpu: 0
   batch-size: 32
@@ -54,7 +54,8 @@ train:
   model: unet/resnet50
   loss: bce
   fold: 0
-  p_pos: 0.9
+  p_pos: 0.8
+  data-step: 5
 
 evaluate:
   area-threshold: 200
