@@ -220,6 +220,12 @@ parser.add_argument(
         "0.9."
     ),
 )
+parser.add_argument(
+    "--data-step",
+    type=int,
+    default=1,
+    help="Give a step n > 1 to load one every n patches only. Default 1.",
+)
 
 if __name__ == "__main__":
     __spec__ = None
@@ -266,12 +272,14 @@ if __name__ == "__main__":
         mask_paths[train_idxs],
         patches_paths[train_idxs],
         transforms=transforms,
+        step=args.step,
     )
     val_ds = SegmentationDataset(
         slide_paths[val_idxs],
         mask_paths[val_idxs],
         patches_paths[val_idxs],
         transforms=[CenterCrop(args.patch_size, args.patch_size), ToTensor()],
+        step=args.step,
     )
 
     train_dl = DataLoader(
