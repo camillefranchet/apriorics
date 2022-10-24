@@ -272,14 +272,14 @@ if __name__ == "__main__":
         mask_paths[train_idxs],
         patches_paths[train_idxs],
         transforms=transforms,
-        step=args.step,
+        step=args.data_step,
     )
     val_ds = SegmentationDataset(
         slide_paths[val_idxs],
         mask_paths[val_idxs],
         patches_paths[val_idxs],
         transforms=[CenterCrop(args.patch_size, args.patch_size), ToTensor()],
-        step=args.step,
+        step=args.data_step,
     )
 
     train_dl = DataLoader(
