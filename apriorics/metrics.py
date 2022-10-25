@@ -172,9 +172,9 @@ class SegmentationAUC(Metric):
         self.tn += tn.sum(-1)
 
     def compute(self):
-        tpr = self.tp / (self.tp + self.fn)
-        fpr = self.fp / (self.tn + self.fp)
-        prec = self.tp / (self.tp + self.fp)
+        tpr = self.tp / (self.tp + self.fn + 1e-7)
+        fpr = self.fp / (self.tn + self.fp + 1e-7)
+        prec = self.tp / (self.tp + self.fp + 1e-7)
         res = {"AUROC": -torch.trapz(tpr, fpr), "AUPRC": -torch.trapz(prec, tpr)}
         return res
 
