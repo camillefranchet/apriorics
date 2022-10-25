@@ -137,9 +137,9 @@ class BasicSegmentationModule(pl.LightningModule):
         self.log_dict(self.metrics.compute(), sync_dist=True)
         if "SegmentationAUC" in self.metrics:
             met = self.metrics["SegmentationAUC"]
-            rec = (met.tp / (met.tp + met.fn)).cpu()
-            fpr = (met.fp / (met.tn + met.fp)).cpu()
-            prec = (met.tp / (met.tp + met.fp)).cpu()
+            rec = (met.tp / (met.tp + met.fn + 1e-7)).cpu()
+            fpr = (met.fp / (met.tn + met.fp + 1e-7)).cpu()
+            prec = (met.tp / (met.tp + met.fp + 1e-7)).cpu()
             self.logger.experiment.log_curve(
                 f"ROC_{self.current_epoch}",
                 x=fpr.tolist(),
