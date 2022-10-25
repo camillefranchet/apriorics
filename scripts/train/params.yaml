@@ -42,7 +42,7 @@ patches:
   overwrite: false
 
 train:
-  patch-size: 224
+  patch-size: 256
   level: 0
   gpu: 0
   batch-size: 32
@@ -54,7 +54,8 @@ train:
   model: unet/resnet50
   loss: bce
   fold: 0
-  p_pos: 0.9
+  p_pos: 0.7
+  data-step: 1
 
 evaluate:
   area-threshold: 50
