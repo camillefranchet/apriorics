@@ -72,33 +72,33 @@ stages:
       size: 24821959047
       nfiles: 40
   evaluate:
-    cmd: python predict_export_geojsons.py --outfolder /data/anapath/AprioricsSlides/evaluate
-      --slidefolder /data/anapath/AprioricsSlides/slides --maskfolder /data/anapath/AprioricsSlides/masks
-      --trainfolder /data/anapath/AprioricsSlides/train --version 28766d6cd6a54e32b5d0fd5887b9d254
+    cmd: python predict_export_geojsons.py --hash-file .model_hash.yaml --outfolder
+      /data/anapath/AprioricsSlides/evaluate --slidefolder /data/anapath/AprioricsSlides/slides
+      --maskfolder /data/anapath/AprioricsSlides/masks --trainfolder /data/anapath/AprioricsSlides/train
       --splitfile splits_new.csv --base-size 256 --data-path '/data/anapath/AprioricsSlides'
       --ihc-type 'PHH3' --mapping-file '../../ihc_mapping.json' --mask-extension '.tif'
       --remote-path '/media/AprioricsSlides' --slide-extension '.svs' --seed 42 --patch-size
-      224 --level 0 --gpu 0 --batch-size 32 --lr 0.0002 --wd 0.01 --epochs 20 --num-workers
+      256 --level 0 --gpu 0 --batch-size 32 --lr 0.0002 --wd 0.01 --epochs 20 --num-workers
       32 --scheduler 'one-cycle' --model 'unet/resnet50' --loss 'bce' --fold 0 --p_pos
-      0.9 --area-threshold 50
+      0.7 --data-step 1 --data-type 'segmentation' --area-threshold 50 --test-fold
+      'test'
     deps:
     - path: .model_hash.yaml
-      md5: 9683ddfefb4b2d61df9ddbf7a4596f3e
-      size: 39
+      md5: aeb9102d6d05ac352209fa7652728d57
+      size: 38
     - path: /data/anapath/AprioricsSlides/train/logs
-      md5: 9d54c73ee280f1ed835844eea426202f.dir
-      size: 20851018379
-      nfiles: 36
+      md5: 866ff9b51e0eb96de4ad9fcacdbaf0e0.dir
+      size: 24821959047
+      nfiles: 40
     outs:
-    - path: /data/anapath/AprioricsSlides/evaluate/PHH3/28766d6cd6a54e32b5d0fd5887b9d254
-      md5: fcea86f7598c461a18b088a0c28a6a58.dir
-      size: 108687795
-      nfiles: 177
+    - path: /data/anapath/AprioricsSlides/evaluate/PHH3/
+      md5: c042fd310de5ade1f72a1876dbe53c2a.dir
+      size: 169911432
+      nfiles: 349
   evaluate_upload:
-    cmd: rsync /data/anapath/AprioricsSlides/evaluate/PHH3/28766d6cd6a54e32b5d0fd5887b9d254/
-      /media/AprioricsSlides/evaluate/PHH3/28766d6cd6a54e32b5d0fd5887b9d254/
+    cmd: rsync -avu /data/anapath/AprioricsSlides/evaluate/PHH3/ /media/AprioricsSlides/evaluate/PHH3/
     deps:
-    - path: /data/anapath/AprioricsSlides/evaluate/PHH3/28766d6cd6a54e32b5d0fd5887b9d254/
-      md5: fcea86f7598c461a18b088a0c28a6a58.dir
-      size: 108687795
-      nfiles: 177
+    - path: /data/anapath/AprioricsSlides/evaluate/PHH3/
+      md5: c042fd310de5ade1f72a1876dbe53c2a.dir
+      size: 169911432
+      nfiles: 349
