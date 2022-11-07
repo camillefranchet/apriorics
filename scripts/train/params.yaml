@@ -2,13 +2,13 @@ base:
   data-path: /data/anapath/AprioricsSlides
   ihc-type: PHH3
   mapping-file: ../../ihc_mapping.json
-  mask-extension: .tif
+  mask-extension: .npz
   remote-path: /media/AprioricsSlides
   slide-extension: .svs
   seed: 42
 
 local:
-  mask-path: masks
+  mask-path: new_masks
   slide-path: slides
   wkt-path: wkts
   geojson-path: geojsons
@@ -56,6 +56,8 @@ train:
   fold: 0
   p_pos: 0.7
   data-step: 1
+  data-type: segmentation_sparse
 
 evaluate:
   area-threshold: 50
+  test-fold: test
