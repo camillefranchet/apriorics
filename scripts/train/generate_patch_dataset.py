@@ -8,6 +8,7 @@ from pathaia.patches import filter_thumbnail
 from pathaia.patches.functional_api import slide_rois_no_image
 from pathaia.util.paths import get_files
 from pathaia.util.types import Patch, Slide
+from scipy.sparse import load_npz
 from skimage.morphology import remove_small_objects
 
 parser = ArgumentParser(prog="Generates the PathAIA patch CSVs for slides.")
@@ -118,7 +119,10 @@ if __name__ == "__main__":
             return
 
         slide = Slide(in_file_path, backend="cucim")
-        mask = Slide(mask_path, backend="cucim")
+        if args.mask_extension == ".tif":
+            mask = Slide(mask_path, backend="cucim")
+        elif args.mask_extension == ".npz":
+            mask = load_npz(mask_path)
         print(in_file_path.stem)
 
         patches = slide_rois_no_image(
@@ -134,11 +138,17 @@ if __name__ == "__main__":
             writer = csv.DictWriter(out_file, fieldnames=Patch.get_fields() + ["n_pos"])
             writer.writeheader()
             for patch in patches:
-                patch_mask = np.asarray(
-                    mask.read_region(patch.position, patch.level, patch.size).convert(
-                        "1"
+                if isinstance(mask, Slide):
+                    patch_mask = np.asarray(
+                        mask.read_region(
+                            patch.position, patch.level, patch.size
+                        ).convert("1")
                     )
-                )
+                else:
+                    w, h = patch.size
+                    x, y = patch.position
+                    patch_mask = mask[y : y + h, x : x + w].toarray()
+
                 if args.filter_pos and patch_mask.sum():
                     patch_mask = remove_small_objects(
                         patch_mask, min_size=args.filter_pos

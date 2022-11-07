@@ -6,6 +6,8 @@ from pathaia.util.basic import ifnone
 from skimage.measure import label
 from torchmetrics import CatMetric, Metric, MetricCollection
 
+from apriorics.masks import flood_mask
+
 
 @torch.jit.unused
 def _forward(self, *args: Any, **kwargs: Any) -> Dict[str, Any]:
@@ -172,9 +174,9 @@ class SegmentationAUC(Metric):
         self.tn += tn.sum(-1)
 
     def compute(self):
-        tpr = self.tp / (self.tp + self.fn + 1e-7)
+        tpr = (self.tp + 1e-7) / (self.tp + self.fn + 1e-7)
         fpr = self.fp / (self.tn + self.fp + 1e-7)
-        prec = self.tp / (self.tp + self.fp + 1e-7)
+        prec = (self.tp + 1e-7) / (self.tp + self.fp + 1e-7)
         res = {"AUROC": -torch.trapz(tpr, fpr), "AUPRC": -torch.trapz(prec, tpr)}
         return res
 
@@ -185,6 +187,7 @@ class DetectionSegmentationMetrics(Metric):
         iou_thresholds: Optional[Sequence[float]] = None,
         clf_threshold: float = 0.5,
         area_threshold: int = 50,
+        flood_fill: bool = False,
         **kwargs
     ):
         super().__init__(**kwargs)
@@ -193,9 +196,15 @@ class DetectionSegmentationMetrics(Metric):
         )
         self.clf_threshold = clf_threshold
         self.area_threshold = area_threshold
+        self.flood_fill = flood_fill
 
         self.add_state(
-            "tp",
+            "tp_pred",
+            default=torch.zeros(len(self.iou_thresholds)),
+            dist_reduce_fx="sum",
+        )
+        self.add_state(
+            "tp_target",
             default=torch.zeros(len(self.iou_thresholds)),
             dist_reduce_fx="sum",
         )
@@ -210,15 +219,25 @@ class DetectionSegmentationMetrics(Metric):
             dist_reduce_fx="sum",
         )
 
-    def update(self, input: torch.Tensor, target: torch.Tensor):
-        for y, y_hat in zip(input, target):
-            labels_pred, n_pred = label(
-                (y > self.clf_threshold).detach().cpu().numpy(), return_num=True
-            )
+    def update(
+        self,
+        input: torch.Tensor,
+        target: torch.Tensor,
+        x: Optional[torch.Tensor] = None,
+    ):
+        for k, (y, y_hat) in enumerate(zip(input, target)):
+            y = (y > self.clf_threshold).detach().cpu().numpy()
+            if self.flood_fill:
+                img = (x[k].detach().cpu().numpy().transpose(1, 2, 0) * 255).astype(
+                    np.uint8
+                )
+            labels_pred, n_pred = label(y, return_num=True)
             to_substract = 0
             for k_pred in range(n_pred):
                 mask_pred = labels_pred == (k_pred + 1)
                 if mask_pred.sum() > self.area_threshold:
+                    if self.flood_fill:
+                        mask_pred = flood_mask(img, mask_pred, n=20)
                     labels_pred[mask_pred] = 0
                     to_substract += 1
                     n_pred -= 1
@@ -233,7 +252,7 @@ class DetectionSegmentationMetrics(Metric):
                 self.fn += n_target
                 continue
             missing = torch.ones(
-                (len(self.iou_thresholds), n_pred, n_target), device=self.tp.device
+                (len(self.iou_thresholds), n_pred, n_target), device=self.fp.device
             )
             for k_pred in range(n_pred):
                 mask_pred = labels_pred == (k_pred + 1)
@@ -261,11 +280,12 @@ class DetectionSegmentationMetrics(Metric):
                     missing[iou > self.iou_thresholds, k_pred, k_target] = 0
             self.fp += missing.all(2).sum(-1)
             self.fn += missing.all(1).sum(-1)
-            self.tp += (1 - missing).any(1).sum(-1)
+            self.tp_target += (1 - missing).any(1).sum(-1)
+            self.tp_pred += (1 - missing).any(2).sum(-1)
 
     def compute(self) -> Dict[str, torch.Tensor]:
-        precisions = self.tp / (self.tp + self.fp + 1e-7)
-        recalls = self.tp / (self.tp + self.fn + 1e-7)
+        precisions = self.tp_pred / (self.tp_pred + self.fp + 1e-7)
+        recalls = self.tp_target / (self.tp_target + self.fn + 1e-7)
         j_10 = self.iou_thresholds.index(0.1)
         j_25 = self.iou_thresholds.index(0.25)
         j_50 = self.iou_thresholds.index(0.5)

@@ -223,7 +223,7 @@ def register_extract_mask(args, patch_he):
     update_full_mask_mp(
         full_mask, mask, *(patch_he.position + crop), *slide_he.dimensions
     )
-    polygons = mask_to_polygons_layer(mask)
+    polygons = mask_to_polygons_layer(mask, 0, 0)
     x, y = patch_he.position
     moved_polygons = translate(polygons, x + crop, y + crop)
 

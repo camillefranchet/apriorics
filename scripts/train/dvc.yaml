@@ -64,15 +64,13 @@ stages:
           persist: true
 
   evaluate:
-    vars:
-      - .model_hash.yaml:hash
     cmd: >-
       python predict_export_geojsons.py
+      --hash-file .model_hash.yaml
       --outfolder ${base.data-path}/${local.evaluate-path}
       --slidefolder ${base.data-path}/${local.slide-path}
       --maskfolder ${base.data-path}/${local.mask-path}
       --trainfolder ${base.data-path}/${local.train-path}
-      --version ${hash}
       --splitfile ${split.filename}
       --base-size ${patches.patch-size}
       ${base}
@@ -82,17 +80,15 @@ stages:
       - .model_hash.yaml
       - ${base.data-path}/${local.train-path}/logs
     outs:
-      - ${base.data-path}/${local.evaluate-path}/${base.ihc-type}/${hash}:
+      - ${base.data-path}/${local.evaluate-path}/${base.ihc-type}/:
           persist: true
 
   evaluate_upload:
-    vars:
-      - .model_hash.yaml:hash
     cmd: >-
       rsync -avu
-      ${base.data-path}/${local.evaluate-path}/${base.ihc-type}/${hash}
+      ${base.data-path}/${local.evaluate-path}/${base.ihc-type}/
       ${base.remote-path}/${remote.evaluate-path}/${base.ihc-type}/
     deps:
-      - ${base.data-path}/${local.evaluate-path}/${base.ihc-type}/${hash}/
+      - ${base.data-path}/${local.evaluate-path}/${base.ihc-type}/
 
     

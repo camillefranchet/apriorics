@@ -6,6 +6,7 @@ import geopandas
 import numpy as np
 import pandas as pd
 import torch
+import yaml
 from albumentations import Crop
 from metrics_config import METRICS
 from pathaia.util.paths import get_files
@@ -18,7 +19,7 @@ from torch.utils.data import DataLoader
 from torchmetrics import MetricCollection
 from tqdm import tqdm
 
-from apriorics.data import SegmentationDataset
+from apriorics.data import get_dataset_cls
 from apriorics.model_components.normalization import group_norm
 from apriorics.plmodules import BasicSegmentationModule
 from apriorics.polygons import mask_to_polygons_layer
@@ -129,7 +130,9 @@ parser.add_argument(
     help="Specify to use group norm instead of batch norm in model. Optional.",
 )
 parser.add_argument(
-    "--version", help="Version id of a model to load weights from.", required=True
+    "--hash-file",
+    help="Yaml file containing the hash (=version) of the model to load weights from.",
+    required=True,
 )
 parser.add_argument(
     "--seed",
@@ -155,8 +158,18 @@ parser.add_argument(
     default=".tif",
     help="File extension of mask files. Default .tif.",
 )
+parser.add_argument("--fold", default="0", help="Fold used for validation. Default 0.")
 parser.add_argument(
-    "--fold", default="test", help="Fold to use for test. Default test."
+    "--test-fold", default="test", help="Fold to use for test. Default test."
+)
+parser.add_argument(
+    "--data-type",
+    choices=["segmentation", "segmentation_sparse", "detection"],
+    default="segmentation",
+    help=(
+        "Input data type. Must be one of segmentation, segmentation_sparse, "
+        "detection. Default segmentation."
+    ),
 )
 
 
@@ -170,6 +183,9 @@ if __name__ == "__main__":
     slidefolder = args.slidefolder / args.ihc_type / "HE"
     maskfolder = args.maskfolder / args.ihc_type / "HE"
     logfolder = args.trainfolder / "logs"
+
+    with open(args.hash_file, "r") as f:
+        version = yaml.safe_load(f)[args.fold]
 
     patches_paths = get_files(
         patch_csv_folder, extensions=".csv", recurse=False
@@ -185,7 +201,7 @@ if __name__ == "__main__":
         args.trainfolder / args.ihc_type / args.splitfile
     ).sort_values("slide")
     split_df = split_df.loc[split_df["slide"].isin(patches_paths.map(lambda x: x.stem))]
-    val_idxs = (split_df["split"] == args.fold).values
+    val_idxs = (split_df["split"] == args.test_fold).values
 
     model = args.model.split("/")
     if model[0] == "unet":
@@ -216,9 +232,11 @@ if __name__ == "__main__":
         wd=0,
     ).to(device)
 
-    ckpt_path = logfolder / f"apriorics/{args.version}/checkpoints/last.ckpt"
+    ckpt_path = logfolder / f"apriorics/{version}/checkpoints/last.ckpt"
     checkpoint = torch.load(ckpt_path)
     missing, unexpected = model.load_state_dict(checkpoint["state_dict"], strict=False)
+
+    dataset_cls = get_dataset_cls(args.data_type)
 
     if args.patch_size < args.base_size:
         interval = int(0.3 * args.patch_size)
@@ -243,7 +261,7 @@ if __name__ == "__main__":
         polygons = []
         for crop in crops:
             print(crop)
-            ds = SegmentationDataset(
+            ds = dataset_cls(
                 [slide_path],
                 [mask_path],
                 [patches_path],
@@ -258,8 +276,9 @@ if __name__ == "__main__":
             )
 
             for batch_idx, (x, y) in tqdm(enumerate(dl), total=len(dl)):
-                y_hat = torch.sigmoid(model(x.to(device)))
-                metrics(y_hat, y.int().to(device))
+                x = x.to(device)
+                y_hat = torch.sigmoid(model(x))
+                metrics(y_hat, y.int().to(device), x=x)
                 y_hat = y_hat.cpu().numpy() > 0.5
                 for k, mask in enumerate(y_hat):
                     if not mask.sum():
@@ -287,7 +306,7 @@ if __name__ == "__main__":
         if isinstance(polygons, Polygon):
             polygons = MultiPolygon(polygons=[polygons])
 
-        outfolder = args.outfolder / args.ihc_type / args.version / "geojsons"
+        outfolder = args.outfolder / args.ihc_type / version / "geojsons"
         if not outfolder.exists():
             outfolder.mkdir(parents=True)
 

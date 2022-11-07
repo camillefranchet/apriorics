@@ -26,8 +26,8 @@ from torch.utils.data import DataLoader
 
 from apriorics.data import (
     BalancedRandomSampler,
-    SegmentationDataset,
     ValidationPositiveSampler,
+    get_dataset_cls,
 )
 from apriorics.losses import get_loss
 from apriorics.model_components.normalization import group_norm
@@ -226,6 +226,15 @@ parser.add_argument(
     default=1,
     help="Give a step n > 1 to load one every n patches only. Default 1.",
 )
+parser.add_argument(
+    "--data-type",
+    choices=["segmentation", "segmentation_sparse", "detection"],
+    default="segmentation",
+    help=(
+        "Input data type. Must be one of segmentation, segmentation_sparse, "
+        "detection. Default segmentation."
+    ),
+)
 
 if __name__ == "__main__":
     __spec__ = None
@@ -266,15 +275,16 @@ if __name__ == "__main__":
         RandomBrightnessContrast(),
         ToTensor(),
     ]
-    k = None
-    train_ds = SegmentationDataset(
+
+    dataset_cls = get_dataset_cls(args.data_type)
+    train_ds = dataset_cls(
         slide_paths[train_idxs],
         mask_paths[train_idxs],
         patches_paths[train_idxs],
         transforms=transforms,
         step=args.data_step,
     )
-    val_ds = SegmentationDataset(
+    val_ds = dataset_cls(
         slide_paths[val_idxs],
         mask_paths[val_idxs],
         patches_paths[val_idxs],
@@ -384,4 +394,4 @@ if __name__ == "__main__":
     finally:
         if args.hash_file is not None and trainer.current_epoch:
             with open(args.hash_file, "w") as f:
-                yaml.dump({"hash": logger.version}, f)
+                yaml.dump({args.fold: logger.version}, f)
