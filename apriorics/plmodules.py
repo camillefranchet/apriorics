@@ -131,7 +131,7 @@ class BasicSegmentationModule(pl.LightningModule):
         if batch_idx % 200 == 0 and self.trainer.training_type_plugin.global_rank == 0:
             self.log_images(x[:8], y[:8], y_hat[:8], batch_idx, step="val")
 
-        self.metrics(y_hat, y.int())
+        self.metrics(y_hat, y.int(), x=x)
 
     def validation_epoch_end(self, outputs: Dict[str, Tensor]):
         self.log_dict(self.metrics.compute(), sync_dist=True)

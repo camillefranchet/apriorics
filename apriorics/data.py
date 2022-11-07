@@ -130,6 +130,7 @@ class SparseSegmentationDataset(Dataset):
             use on images (and on masks when relevant).
         slide_backend: whether to use `OpenSlide <https://openslide.org/>`_ or
             `cuCIM <https://github.com/rapidsai/cucim>`_ to load slides.
+        step: give a step n > 1 to load one every n patches only.
     """
 
     def __init__(
@@ -141,6 +142,7 @@ class SparseSegmentationDataset(Dataset):
         stain_augmentor: Optional[StainAugmentor] = None,
         transforms: Optional[Sequence[BasicTransform]] = None,
         slide_backend: str = "cucim",
+        step: int = 1,
     ):
         super().__init__()
         self.slides = []
@@ -156,10 +158,11 @@ class SparseSegmentationDataset(Dataset):
             self.masks.append(load_npz(mask_path))
             with open(patches_path, "r") as patch_file:
                 reader = csv.DictReader(patch_file)
-                for patch in reader:
-                    self.patches.append(Patch.from_csv_row(patch))
-                    self.n_pos.append(patch["n_pos"])
-                    self.slide_idxs.append(slide_idx)
+                for k, patch in enumerate(reader):
+                    if k % step == 0:
+                        self.patches.append(Patch.from_csv_row(patch))
+                        self.n_pos.append(patch["n_pos"])
+                        self.slide_idxs.append(slide_idx)
 
         self.n_pos = np.array(self.n_pos, dtype=np.uint64)
 
@@ -322,6 +325,17 @@ class DetectionDataset(Dataset):
         self.patches = patches
         self.slide_idxs = slide_idxs
         self.n_pos = self.n_pos[idxs]
+
+
+_dataset_mapping = {
+    "segmentation": SegmentationDataset,
+    "segmentation_sparse": SparseSegmentationDataset,
+    "detection": DetectionDataset,
+}
+
+
+def get_dataset_cls(name):
+    return _dataset_mapping[name.lower()]
 
 
 class BalancedRandomSampler(RandomSampler):

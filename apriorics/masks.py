@@ -1,6 +1,7 @@
 from multiprocessing import Array
 from typing import Callable, List, Optional, Tuple, Union
 
+import cv2
 import numpy as np
 import torch
 from pathaia.util.types import NDBoolMask, NDByteGrayImage, NDImage
@@ -10,7 +11,6 @@ from skimage.color import rgb2hed, rgb2hsv
 from skimage.filters import threshold_otsu
 from skimage.morphology import (
     binary_closing,
-    binary_dilation,
     disk,
     label,
     remove_small_holes,
@@ -113,13 +113,31 @@ def get_dab_mask(
     return mask
 
 
+def flood_mask(img, mask, n=40):
+    ii, jj = np.nonzero(mask)
+    out = np.zeros((img.shape[0] + 2, img.shape[1] + 2), dtype=bool)
+    for i, j in zip(ii, jj):
+        m = np.zeros((img.shape[0] + 2, img.shape[1] + 2), dtype=np.uint8)
+        _, _, m, _ = cv2.floodFill(
+            img,
+            m,
+            (j, i),
+            newVal=(0, 0, 0),
+            loDiff=(n, n, n),
+            upDiff=(n, n, n),
+            flags=4 | cv2.FLOODFILL_FIXED_RANGE | cv2.FLOODFILL_MASK_ONLY,
+        )
+        out |= m > 0
+    return out[1:-1, 1:-1]
+
+
 def get_mask_ink(img):
     mask = np.ones(img.shape[:2], dtype=bool)
     ranges = [(56, 98), (69, 119), (117, 160)]
     for c, r in enumerate(ranges):
         a, b = r
         mask &= (img[..., c] > a) & (img[..., c] < b)
-    mask = binary_dilation(remove_small_objects(mask, min_size=50), disk(15))
+    mask = flood_mask(img, remove_small_objects(mask, min_size=10), 5)
     return mask
 
 
