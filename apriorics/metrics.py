@@ -225,19 +225,15 @@ class DetectionSegmentationMetrics(Metric):
         target: torch.Tensor,
         x: Optional[torch.Tensor] = None,
     ):
+        if x is not None and self.flood_fill:
+            x = (x.detach().cpu().numpy().transpose(0, 2, 3, 1) * 255).astype(np.uint8)
         for k, (y, y_hat) in enumerate(zip(input, target)):
             y = (y > self.clf_threshold).detach().cpu().numpy()
-            if self.flood_fill:
-                img = (x[k].detach().cpu().numpy().transpose(1, 2, 0) * 255).astype(
-                    np.uint8
-                )
             labels_pred, n_pred = label(y, return_num=True)
             to_substract = 0
             for k_pred in range(n_pred):
                 mask_pred = labels_pred == (k_pred + 1)
-                if mask_pred.sum() > self.area_threshold:
-                    if self.flood_fill:
-                        mask_pred = flood_mask(img, mask_pred, n=20)
+                if mask_pred.sum() < self.area_threshold:
                     labels_pred[mask_pred] = 0
                     to_substract += 1
                     n_pred -= 1
@@ -256,6 +252,9 @@ class DetectionSegmentationMetrics(Metric):
             )
             for k_pred in range(n_pred):
                 mask_pred = labels_pred == (k_pred + 1)
+                if x is not None and self.flood_fill:
+                    img = x[k]
+                    mask_pred = flood_mask(img, mask_pred, n=20)
                 ii, jj = np.nonzero(mask_pred)
                 y0, y1 = ii.min(), ii.max()
                 x0, x1 = jj.min(), jj.max()
