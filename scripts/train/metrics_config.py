@@ -1,6 +1,11 @@
-from torchmetrics import Accuracy, JaccardIndex, Precision, Recall, Specificity
+from torchmetrics import Accuracy, JaccardIndex, Precision, Specificity
 
-from apriorics.metrics import DetectionSegmentationMetrics, DiceScore, SegmentationAUC
+from apriorics.metrics import (
+    DetectionSegmentationMetrics,
+    DiceScore,
+    Recall,
+    SegmentationAUC,
+)
 
 METRICS = {
     "all": [
@@ -12,5 +17,5 @@ METRICS = {
         Specificity(),
         SegmentationAUC(),
     ],
-    "PHH3": [DetectionSegmentationMetrics()],
+    "PHH3": [DetectionSegmentationMetrics(flood_fill=True)],
 }
