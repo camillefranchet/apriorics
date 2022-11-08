@@ -4,7 +4,9 @@ import numpy as np
 import torch
 from pathaia.util.basic import ifnone
 from skimage.measure import label
-from torchmetrics import CatMetric, Metric, MetricCollection
+from torchmetrics import CatMetric, Metric, MetricCollection, Recall
+from torchmetrics.functional.classification.stat_scores import _reduce_stat_scores
+from torchmetrics.utilities.enums import AverageMethod, MDMCAverageMethod
 
 from apriorics.masks import flood_mask
 
@@ -40,6 +42,66 @@ def _compute(self) -> Dict[str, Any]:
 
 MetricCollection.forward = _forward
 MetricCollection.compute = _compute
+
+
+def _recall_compute(
+    tp: torch.Tensor,
+    fp: torch.Tensor,
+    fn: torch.Tensor,
+    average: str,
+    mdmc_average: Optional[str],
+) -> torch.Tensor:
+    """Computes precision from the stat scores: true positives, false positives, true
+    negatives, false negatives.
+
+    Args:
+        tp: True positives
+        fp: False positives
+        fn: False negatives
+        average: Defines the reduction that is applied
+        mdmc_average: Defines how averaging is done for multi-dimensional multi-class
+            inputs (on top of the ``average`` parameter)
+    """
+    numerator = tp
+    denominator = tp + fn
+
+    if average == AverageMethod.MACRO and mdmc_average != MDMCAverageMethod.SAMPLEWISE:
+        cond = tp + fp + fn == 0
+        numerator = numerator[~cond]
+        denominator = denominator[~cond]
+
+    if average == AverageMethod.NONE and mdmc_average != MDMCAverageMethod.SAMPLEWISE:
+        # a class is not present if there exists no TPs, no FPs, and no FNs
+        meaningless_indeces = ((tp | fn | fp) == 0).nonzero().cpu()
+        numerator[meaningless_indeces, ...] = -1
+        denominator[meaningless_indeces, ...] = -1
+
+    return _reduce_stat_scores(
+        numerator=numerator,
+        denominator=denominator,
+        weights=None if average != AverageMethod.WEIGHTED else tp + fn,
+        average=average,
+        mdmc_average=mdmc_average,
+        zero_division=1,
+    )
+
+
+def recall_compute(self) -> torch.Tensor:
+    """Computes the recall score based on inputs passed in to ``update`` previously.
+
+    Return:
+        The shape of the returned tensor depends on the ``average`` parameter
+
+        - If ``average in ['micro', 'macro', 'weighted', 'samples']``, a one-element
+            tensor will be returned
+        - If ``average in ['none', None]``, the shape will be ``(C,)``, where ``C``
+            stands  for the number of classes
+    """
+    tp, fp, _, fn = self._get_final_stats()
+    return _recall_compute(tp, fp, fn, self.average, self.mdmc_reduce)
+
+
+Recall.compute = recall_compute
 
 
 def _reduce(x: torch.Tensor, reduction: str = "mean") -> torch.Tensor:
@@ -226,10 +288,13 @@ class DetectionSegmentationMetrics(Metric):
         x: Optional[torch.Tensor] = None,
     ):
         if x is not None and self.flood_fill:
-            x = (x.detach().cpu().numpy().transpose(0, 2, 3, 1) * 255).astype(np.uint8)
-        for k, (y, y_hat) in enumerate(zip(input, target)):
-            y = (y > self.clf_threshold).detach().cpu().numpy()
-            labels_pred, n_pred = label(y, return_num=True)
+            x = np.ascontiguousarray(
+                (x.detach().cpu().numpy().transpose(0, 2, 3, 1) * 255),
+                dtype=np.uint8,
+            )
+        for k, (y_hat, y) in enumerate(zip(input, target)):
+            y_hat = (y_hat > self.clf_threshold).detach().cpu().numpy()
+            labels_pred, n_pred = label(y_hat, return_num=True)
             to_substract = 0
             for k_pred in range(n_pred):
                 mask_pred = labels_pred == (k_pred + 1)
@@ -240,7 +305,7 @@ class DetectionSegmentationMetrics(Metric):
                 else:
                     labels_pred[mask_pred] -= to_substract
 
-            labels_target, n_target = label(y_hat.bool().cpu().numpy(), return_num=True)
+            labels_target, n_target = label(y.bool().cpu().numpy(), return_num=True)
             if n_target == 0:
                 self.fp += n_pred
                 continue
@@ -284,7 +349,7 @@ class DetectionSegmentationMetrics(Metric):
 
     def compute(self) -> Dict[str, torch.Tensor]:
         precisions = self.tp_pred / (self.tp_pred + self.fp + 1e-7)
-        recalls = self.tp_target / (self.tp_target + self.fn + 1e-7)
+        recalls = (self.tp_target + 1e-7) / (self.tp_target + self.fn + 1e-7)
         j_10 = self.iou_thresholds.index(0.1)
         j_25 = self.iou_thresholds.index(0.25)
         j_50 = self.iou_thresholds.index(0.5)

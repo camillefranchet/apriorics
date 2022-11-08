@@ -131,6 +131,16 @@ def flood_mask(img, mask, n=40):
     return out[1:-1, 1:-1]
 
 
+def flood_full_mask(img, mask, n=40, area_threshold=50):
+    labels, n = label(mask, return_num=True)
+    out = np.zeros_like(mask)
+    for k in range(n):
+        sub_mask = labels == (k + 1)
+        if sub_mask.sum() >= area_threshold:
+            out |= flood_mask(img, sub_mask, n=n)
+    return out
+
+
 def get_mask_ink(img):
     mask = np.ones(img.shape[:2], dtype=bool)
     ranges = [(56, 98), (69, 119), (117, 160)]

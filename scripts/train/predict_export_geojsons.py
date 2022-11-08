@@ -16,10 +16,11 @@ from shapely.geometry import MultiPolygon, Polygon
 from shapely.ops import unary_union
 from timm import create_model
 from torch.utils.data import DataLoader
-from torchmetrics import MetricCollection
 from tqdm import tqdm
 
 from apriorics.data import get_dataset_cls
+from apriorics.masks import flood_full_mask
+from apriorics.metrics import MetricCollection
 from apriorics.model_components.normalization import group_norm
 from apriorics.plmodules import BasicSegmentationModule
 from apriorics.polygons import mask_to_polygons_layer
@@ -279,8 +280,16 @@ if __name__ == "__main__":
                 x = x.to(device)
                 y_hat = torch.sigmoid(model(x))
                 metrics(y_hat, y.int().to(device), x=x)
+                x = np.ascontiguousarray(
+                    (x.detach().cpu().numpy().transpose(0, 2, 3, 1) * 255),
+                    dtype=np.uint8,
+                )
                 y_hat = y_hat.cpu().numpy() > 0.5
                 for k, mask in enumerate(y_hat):
+                    img = x[k]
+                    mask = flood_full_mask(
+                        img, mask, n=20, area_threshold=args.area_threshold
+                    )
                     if not mask.sum():
                         continue
                     idx = batch_idx * args.batch_size + k
