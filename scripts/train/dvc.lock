@@ -93,13 +93,13 @@ stages:
       nfiles: 44
     outs:
     - path: /data/anapath/AprioricsSlides/evaluate/PHH3/
-      md5: b56ebf9042d94a324cc7e1920bc58184.dir
-      size: 341916592
+      md5: f3f5ee363d490c79fc0ede603f7e9e65.dir
+      size: 341918206
       nfiles: 448
   evaluate_upload:
     cmd: rsync -avu /data/anapath/AprioricsSlides/evaluate/PHH3/ /media/AprioricsSlides/evaluate/PHH3/
     deps:
     - path: /data/anapath/AprioricsSlides/evaluate/PHH3/
-      md5: b56ebf9042d94a324cc7e1920bc58184.dir
-      size: 341916592
+      md5: f3f5ee363d490c79fc0ede603f7e9e65.dir
+      size: 341918206
       nfiles: 448
