@@ -12,17 +12,17 @@ stages:
       size: 67649
   generate_patch_csvs:
     cmd: python generate_patch_dataset.py --data-path '/data/anapath/AprioricsSlides'
-      --ihc-type 'PHH3' --mapping-file '../../ihc_mapping.json' --mask-extension '.tif'
+      --ihc-type 'PHH3' --mapping-file '../../ihc_mapping.json' --mask-extension '.npz'
       --remote-path '/media/AprioricsSlides' --slide-extension '.svs' --seed 42 --patch-size
-      256 --level 0 --overlap 0.1 --filter-pos 0 --overwrite --slidefolder /data/anapath/AprioricsSlides/slides
+      256 --level 0 --overlap 0.1 --filter-pos 0 --slidefolder /data/anapath/AprioricsSlides/slides
       --maskfolder /data/anapath/AprioricsSlides/masks --outfolder /data/anapath/AprioricsSlides/train
     deps:
     - path: .downloaded_slides.csv
       md5: b22086e2f3720da570407aeff2b49b12
       size: 67649
     - path: /data/anapath/AprioricsSlides/masks/PHH3
-      md5: 0112823145aea68d82e7b628c73e15ca.dir
-      size: 243129631097
+      md5: db61f4928484cc28790423c53ffdf47d.dir
+      size: 11763931
       nfiles: 485
     outs:
     - path: /data/anapath/AprioricsSlides/train/PHH3/256_0/patch_csvs
@@ -31,20 +31,20 @@ stages:
       nfiles: 485
   split_dataset:
     cmd: python split_dataset.py --maskfolder /data/anapath/AprioricsSlides/masks
-      --out-csv /data/anapath/AprioricsSlides/train/PHH3/splits_new.csv --data-path
-      '/data/anapath/AprioricsSlides' --ihc-type 'PHH3' --mapping-file '../../ihc_mapping.json'
-      --mask-extension '.tif' --remote-path '/media/AprioricsSlides' --slide-extension
-      '.svs' --seed 42 --nfolds 5 --test-ratio 0.1 --update --filename 'splits_new.csv'
+      --out-csv /data/anapath/AprioricsSlides/train/PHH3/splits.csv --data-path '/data/anapath/AprioricsSlides'
+      --ihc-type 'PHH3' --mapping-file '../../ihc_mapping.json' --mask-extension '.npz'
+      --remote-path '/media/AprioricsSlides' --slide-extension '.svs' --seed 42 --nfolds
+      5 --test-ratio 0.1 --update --filename 'splits.csv'
     deps:
     - path: .downloaded_slides.csv
       md5: b22086e2f3720da570407aeff2b49b12
       size: 67649
     - path: /data/anapath/AprioricsSlides/masks/PHH3
-      md5: 0112823145aea68d82e7b628c73e15ca.dir
-      size: 243129631097
+      md5: db61f4928484cc28790423c53ffdf47d.dir
+      size: 11763931
       nfiles: 485
     outs:
-    - path: /data/anapath/AprioricsSlides/train/PHH3/splits_new.csv
+    - path: /data/anapath/AprioricsSlides/train/PHH3/splits.csv
       md5: c01938788372b60bab4e023a69c64067
       size: 5979
   train:

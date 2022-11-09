@@ -22,8 +22,8 @@ stages:
       size: 134370
     outs:
     - path: /data/anapath/AprioricsSlides/masks/PHH3
-      md5: 0112823145aea68d82e7b628c73e15ca.dir
-      size: 243129631097
+      md5: db61f4928484cc28790423c53ffdf47d.dir
+      size: 11763931
       nfiles: 485
     - path: /data/anapath/AprioricsSlides/wkts/PHH3
       md5: 89f6e7d60ae95f9e5f727e1ad7a134cc.dir
@@ -40,8 +40,8 @@ stages:
       nfiles: 485
     outs:
     - path: /data/anapath/AprioricsSlides/geojsons/PHH3
-      md5: a152832093d8a275e73db4c5277a2ca3.dir
-      size: 54553833
+      md5: 0cf6564d7dc19816e5e95799793f2b3d.dir
+      size: 140563348
       nfiles: 485
   geojson_upload:
     cmd: python ../utils/file_transfer.py --data-path /media/AprioricsSlides --remote-path
@@ -50,8 +50,8 @@ stages:
       --add-tree
     deps:
     - path: /data/anapath/AprioricsSlides/geojsons/PHH3
-      md5: a152832093d8a275e73db4c5277a2ca3.dir
-      size: 54553833
+      md5: 0cf6564d7dc19816e5e95799793f2b3d.dir
+      size: 140563348
       nfiles: 485
   mask_upload:
     cmd: python ../utils/file_transfer.py --data-path /media/AprioricsSlides --remote-path
