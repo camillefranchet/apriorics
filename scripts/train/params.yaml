@@ -39,7 +39,7 @@ patches:
   level: 0
   overlap: 0.1
   filter-pos: 0
-  overwrite: false
+  overwrite: true
 
 train:
   patch-size: 256
@@ -52,7 +52,7 @@ train:
   num-workers: 32
   scheduler: one-cycle
   model: unet/resnet50
-  loss: bce
+  loss: sum_bce_1_dice_1
   fold: 0
   p_pos: 0.7
   data-step: 1
