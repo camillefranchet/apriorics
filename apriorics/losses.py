@@ -55,7 +55,8 @@ def get_loss_name(loss: nn.Module) -> str:
         return "dice"
     elif isinstance(loss, SumLosses):
         name = "sum"
-        for loss_func, coef in loss.losses_with_coef:
+        for n, loss_func in loss.named_children():
+            coef = loss.coefs[n]
             name += f"_{get_loss_name(loss_func)}_{coef}"
         return name
     else:
@@ -184,10 +185,14 @@ class SumLosses(nn.Module):
 
     def __init__(self, *losses_with_coef: Sequence[Tuple[nn.Module, float]]):
         super().__init__()
-        self.losses_with_coef = losses_with_coef
+        self.coefs = {}
+        for loss_func, coef in losses_with_coef:
+            name = get_loss_name(loss_func)
+            self.add_module(name, loss_func)
+            self.coefs[name] = coef
 
     def forward(self, input, target):
         loss = 0
-        for loss_func, coef in self.losses_with_coef:
-            loss += coef * loss_func(input, target)
+        for name, loss_func in self.named_children():
+            loss += self.coefs[name] * loss_func(input, target)
         return loss

@@ -360,10 +360,10 @@ if __name__ == "__main__":
 
     ckpt_callback = ModelCheckpoint(
         save_top_k=3,
-        monitor=f"val_loss_{args.loss}",
+        monitor="val_loss",
         save_last=True,
         mode="min",
-        filename=f"{{epoch}}-{{val_loss_{args.loss}:.3f}}",
+        filename="{epoch}-{val_loss:.3f}",
     )
 
     trainer = pl.Trainer(
@@ -375,6 +375,7 @@ if __name__ == "__main__":
         accumulate_grad_batches=args.grad_accumulation,
         callbacks=[ckpt_callback],
         strategy="horovod" if args.horovod else None,
+        num_sanity_val_steps=0,
     )
 
     if args.resume_version is not None:

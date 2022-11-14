@@ -17,7 +17,6 @@ from torchmetrics import Metric
 from torchvision.transforms.functional import to_pil_image
 from torchvision.utils import draw_bounding_boxes, draw_segmentation_masks, make_grid
 
-from apriorics.losses import get_loss_name
 from apriorics.metrics import MetricCollection
 from apriorics.model_components.utils import named_leaf_modules
 
@@ -114,7 +113,7 @@ class BasicSegmentationModule(pl.LightningModule):
             y_hat = torch.sigmoid(y_hat)
             self.log_images(x[:8], y[:8], y_hat[:8], batch_idx, step="train")
 
-        self.log(f"train_loss_{get_loss_name(self.loss)}", loss)
+        self.log("train_loss", loss)
         if self.sched is not None:
             self.log("learning_rate", self.sched["scheduler"].get_last_lr()[0])
         return loss
@@ -125,7 +124,7 @@ class BasicSegmentationModule(pl.LightningModule):
         x, y = batch
         y_hat = self(x)
         loss = self.loss(y_hat, y)
-        self.log(f"val_loss_{get_loss_name(self.loss)}", loss, sync_dist=True)
+        self.log("val_loss", loss, sync_dist=True)
 
         y_hat = torch.sigmoid(y_hat)
         if batch_idx % 200 == 0 and self.trainer.training_type_plugin.global_rank == 0:
