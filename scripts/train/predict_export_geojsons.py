@@ -315,7 +315,7 @@ if __name__ == "__main__":
         if isinstance(polygons, Polygon):
             polygons = MultiPolygon(polygons=[polygons])
 
-        outfolder = args.outfolder / args.ihc_type / f"{version}_floodfill" / "geojsons"
+        outfolder = args.outfolder / args.ihc_type / version / "geojsons"
         if not outfolder.exists():
             outfolder.mkdir(parents=True)
 
