@@ -52,7 +52,7 @@ train:
   num-workers: 32
   scheduler: one-cycle
   model: unet/resnet50
-  loss: sum_bce_1_dice_1
+  loss: focal
   fold: 0
   p_pos: 0.7
   data-step: 1
