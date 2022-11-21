@@ -9,7 +9,7 @@ from apriorics.metrics import (
 
 METRICS = {
     "all": [
-        JaccardIndex(2),
+        JaccardIndex(2, ignore_index=0, absent_score=1),
         DiceScore(),
         Accuracy(),
         Precision(),
