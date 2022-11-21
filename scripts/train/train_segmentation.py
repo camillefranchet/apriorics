@@ -235,6 +235,9 @@ parser.add_argument(
         "detection. Default segmentation."
     ),
 )
+parser.add_argument(
+    "--grad-clip", type=float, help="Value to use for gradient clipping. Optional."
+)
 
 if __name__ == "__main__":
     __spec__ = None
@@ -376,6 +379,8 @@ if __name__ == "__main__":
         callbacks=[ckpt_callback],
         strategy="horovod" if args.horovod else None,
         num_sanity_val_steps=0,
+        track_grad_norm=2,
+        gradient_clip_val=args.grad_clip,
     )
 
     if args.resume_version is not None:
