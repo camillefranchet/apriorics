@@ -2,6 +2,7 @@ from typing import Sequence, Tuple
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 from apriorics.metrics import _flatten, _reduce, dice_score
 
@@ -117,11 +118,11 @@ def focal_loss(
     """
     target = _flatten(target).to(dtype=input.dtype)
     input = _flatten(input)
-    input = torch.sigmoid(input).clamp(eps, 1 - eps)
-    focal = -(
-        beta * target * (1 - input).pow(gamma) * input.log()
-        + (1 - beta) * (1 - target) * input.pow(gamma) * (1 - input).log()
-    ).mean(-1)
+    ce = F.binary_cross_entropy_with_logits(input, target, reduction="none")
+    p = torch.sigmoid(input)
+    p_t = p * target + (1 - p) * (1 - target)
+    beta_t = beta * target + (1 - beta) * target
+    focal = beta_t * ce * ((1 - p_t) ** gamma)
     return _reduce(focal, reduction=reduction)
 
 
