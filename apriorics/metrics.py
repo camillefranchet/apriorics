@@ -236,7 +236,7 @@ class SegmentationAUC(Metric):
         self.tn += tn.sum(-1)
 
     def compute(self):
-        tpr = (self.tp + 1e-7) / (self.tp + self.fn + 1e-7)
+        tpr = self.tp / (self.tp + self.fn + 1e-7)
         fpr = self.fp / (self.tn + self.fp + 1e-7)
         prec = (self.tp + 1e-7) / (self.tp + self.fp + 1e-7)
         res = {"AUROC": -torch.trapz(tpr, fpr), "AUPRC": -torch.trapz(prec, tpr)}
@@ -367,3 +367,24 @@ class DetectionSegmentationMetrics(Metric):
             "recall_50+": recalls[j_50:].mean(),
         }
         return res
+
+
+class PredictionHist(Metric):
+    def __init__(self, density=False, bin_size=0.05, **kwargs):
+        super().__init__(self, **kwargs)
+        self.register_buffer("bins", torch.arange(0, 1 + bin_size, bin_size))
+        self.add_state("hist", torch.zeros((2, len(self.bins) - 1)))
+        self.density = density
+        self.bin_size = bin_size
+
+    def update(self, input, target):
+        input = input.flatten()
+        target = target.flatten()
+        for i in range(2):
+            mask = target == i
+            self.hist[i] += torch.histogram(input[mask], self.bins)[0]
+
+    def compute(self):
+        if self.density:
+            self.hist /= self.hist.sum(-1, keepdim=True) * self.bin_size
+        return self.hist
