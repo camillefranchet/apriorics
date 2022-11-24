@@ -31,7 +31,7 @@ from apriorics.data import (
 )
 from apriorics.losses import get_loss
 from apriorics.model_components.normalization import group_norm
-from apriorics.plmodules import BasicSegmentationModule, get_scheduler_func
+from apriorics.plmodules import get_model, get_scheduler_func
 from apriorics.stain_augment import StainAugmentor
 from apriorics.transforms import ToTensor
 
@@ -337,8 +337,9 @@ if __name__ == "__main__":
     metrics = METRICS["all"]
     if args.ihc_type in METRICS:
         metrics.extend(METRICS[args.ihc_type])
-    plmodule = BasicSegmentationModule(
-        model,
+    plmodule = get_model(
+        args.data_type,
+        model=model,
         loss=get_loss(args.loss),
         lr=args.lr,
         wd=args.wd,
