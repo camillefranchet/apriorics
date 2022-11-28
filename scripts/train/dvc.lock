@@ -52,10 +52,10 @@ stages:
       --ihc-type 'PHH3' --mapping-file '../../ihc_mapping.json' --mask-extension '.npz'
       --remote-path '/media/AprioricsSlides' --slide-extension '.svs' --seed 42 --patch-size
       256 --level 0 --gpu 0 --batch-size 32 --lr 0.0002 --wd 0.01 --epochs 20 --num-workers
-      32 --scheduler 'one-cycle' --model 'unet/resnet50' --loss 'sum_focal_1_dice_1'
-      --fold 0 --p_pos 0.7 --data-step 1 --data-type 'segmentation_sparse' --splitfile
-      splits.csv --base-size 256 --slidefolder /data/anapath/AprioricsSlides/slides
-      --maskfolder /data/anapath/AprioricsSlides/masks --trainfolder /data/anapath/AprioricsSlides/train
+      32 --scheduler 'one-cycle' --model 'resnet50' --loss 'bce' --fold 0 --p-pos
+      0.5 --data-step 1 --data-type 'classification' --splitfile splits.csv --base-size
+      256 --slidefolder /data/anapath/AprioricsSlides/slides --maskfolder /data/anapath/AprioricsSlides/masks
+      --trainfolder /data/anapath/AprioricsSlides/train
     deps:
     - path: /data/anapath/AprioricsSlides/train/PHH3/256_0/patch_csvs
       md5: 48cb7b78f3691ec1585140259b73a3bb.dir
@@ -66,12 +66,12 @@ stages:
       size: 5979
     outs:
     - path: .model_hash.yaml
-      md5: 691e335b72c5cd97a20034766da6691d
+      md5: 7bed3dab1fc43b8c0bb2641d9738d1c4
       size: 38
     - path: /data/anapath/AprioricsSlides/train/logs
-      md5: f79daeda892724420b63be154798a819.dir
-      size: 44623446454
-      nfiles: 60
+      md5: 07013e7cb089654a154bdfe2584c21dc.dir
+      size: 45753694482
+      nfiles: 64
   evaluate:
     cmd: python predict_export_geojsons.py --hash-file .model_hash.yaml --outfolder
       /data/anapath/AprioricsSlides/evaluate --slidefolder /data/anapath/AprioricsSlides/slides
