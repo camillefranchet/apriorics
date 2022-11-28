@@ -179,7 +179,7 @@ class BasicSegmentationModule(pl.LightningModule):
         self.logger.experiment.log_image(
             to_pil_image(grid),
             f"{step}_image_sample_{self.current_epoch}_{batch_idx}",
-            step=self.current_epoch,
+            step=self.global_step,
         )
 
     def freeze_encoder(self):
@@ -356,7 +356,7 @@ class BasicDetectionModule(pl.LightningModule):
         self.logger.experiment.log_image(
             to_pil_image(grid),
             f"val_image_sample_{self.current_epoch}_{batch_idx}",
-            step=self.current_epoch,
+            step=self.global_step,
         )
 
 
@@ -444,15 +444,23 @@ class BasicClassificationModule(pl.LightningModule):
         )
         self.cm.reset()
 
-        bins = self.hist.bins.cpu().numpy()
+        bins = self.hist.bins
         hists = self.hist.compute().cpu().numpy()
         fig, axs = plt.subplots(2, 1, figsize=(20, 30))
         for k, (hist, ax) in enumerate(zip(hists, axs.flatten())):
-            ax.bar(bins[:-1], hist, align="edge", fc="skyblue", ec="black")
+            ax.bar(
+                bins[:-1],
+                hist,
+                width=self.hist.bin_size,
+                align="edge",
+                fc="skyblue",
+                ec="black",
+            )
             ax.set_title(f"Prediction histogram for class {k}")
         self.logger.experiment.log_figure(
             figure_name=f"pred_hists_{self.current_epoch}", figure=fig
         )
+        self.hist.reset()
 
     def configure_optimizers(
         self,
@@ -475,9 +483,9 @@ class BasicClassificationModule(pl.LightningModule):
                 to_pil_image(img),
                 (
                     f"{step}_image_sample_{self.current_epoch}_{batch_idx}_{k}_"
-                    f"t:{target}/p:{pred:3f}"
-                ),
-                step=self.current_epoch,
+                    f"t:{target.item()}/p:{pred.item():.3f}"
+                ).replace(".", ","),
+                step=self.global_step,
             )
 
 
