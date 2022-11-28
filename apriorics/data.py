@@ -143,6 +143,7 @@ class SparseSegmentationDataset(Dataset):
         transforms: Optional[Sequence[BasicTransform]] = None,
         slide_backend: str = "cucim",
         step: int = 1,
+        **kwargs
     ):
         super().__init__()
         self.slides = []
@@ -236,6 +237,7 @@ class DetectionDataset(Dataset):
         transforms: Optional[Sequence[BasicTransform]] = None,
         slide_backend: str = "cucim",
         min_size: int = 10,
+        **kwargs
     ):
         super().__init__()
         self.slides = []
@@ -358,6 +360,7 @@ class ClassifDataset(Dataset):
         slide_backend: str = "cucim",
         step: int = 1,
         area_thr: int = 50,
+        **kwargs
     ):
         super().__init__()
         self.slides = []
@@ -413,7 +416,7 @@ class ClassifDataset(Dataset):
             ]
 
         transformed = self.transforms(image=slide_region)
-        return transformed["image"], label
+        return transformed["image"], torch.tensor(label, dtype=torch.float32)
 
 
 _dataset_mapping = {
@@ -473,7 +476,11 @@ class BalancedRandomSampler(RandomSampler):
         for k in tqdm(range(num_samples), total=num_samples):
             if len(avail) == 1:
                 cl_patches = avail[0]
-                idx = torch.multinomial(torch.ones(len(cl_patches)), num_samples - k)
+                idx = torch.multinomial(
+                    torch.ones(len(cl_patches)),
+                    num_samples - k,
+                    generator=self.generator,
+                )
                 idxs.extend([cl_patches[i] for i in idx])
                 break
             x = p[k]

@@ -370,21 +370,26 @@ class DetectionSegmentationMetrics(Metric):
 
 
 class PredictionHist(Metric):
-    def __init__(self, density=False, bin_size=0.05, **kwargs):
-        super().__init__(self, **kwargs)
-        self.register_buffer("bins", torch.arange(0, 1 + bin_size, bin_size))
-        self.add_state("hist", torch.zeros((2, len(self.bins) - 1)))
+    def __init__(self, density: bool = False, bin_size: float = 0.05, **kwargs):
+        super().__init__(**kwargs)
+        self.bins = np.arange(0, 1 + bin_size, bin_size)
+        self.add_state(
+            "hists", default=torch.zeros((2, int(1 / bin_size))), dist_reduce_fx="sum"
+        )
         self.density = density
         self.bin_size = bin_size
 
     def update(self, input, target):
-        input = input.flatten()
-        target = target.flatten()
+        input = input.flatten().cpu().numpy()
+        target = target.flatten().cpu().numpy()
+        hists = np.zeros((2, int(1 / self.bin_size)))
         for i in range(2):
             mask = target == i
-            self.hist[i] += torch.histogram(input[mask], self.bins)[0]
+            hists[i] += np.histogram(input[mask], self.bins)[0]
+        self.hists += torch.as_tensor(hists).to(self.hists)
 
     def compute(self):
         if self.density:
-            self.hist /= self.hist.sum(-1, keepdim=True) * self.bin_size
-        return self.hist
+            return self.hists / (self.hists.sum(-1, keepdim=True) * self.bin_size)
+        else:
+            return self.hists

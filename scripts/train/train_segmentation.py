@@ -228,7 +228,7 @@ parser.add_argument(
 )
 parser.add_argument(
     "--data-type",
-    choices=["segmentation", "segmentation_sparse", "detection"],
+    choices=["classification", "segmentation", "segmentation_sparse", "detection"],
     default="segmentation",
     help=(
         "Input data type. Must be one of segmentation, segmentation_sparse, "
@@ -281,16 +281,16 @@ if __name__ == "__main__":
 
     dataset_cls = get_dataset_cls(args.data_type)
     train_ds = dataset_cls(
-        slide_paths[train_idxs],
-        mask_paths[train_idxs],
-        patches_paths[train_idxs],
+        slide_paths=slide_paths[train_idxs],
+        mask_paths=mask_paths[train_idxs],
+        patches_paths=patches_paths[train_idxs],
         transforms=transforms,
         step=args.data_step,
     )
     val_ds = dataset_cls(
-        slide_paths[val_idxs],
-        mask_paths[val_idxs],
-        patches_paths[val_idxs],
+        slide_paths=slide_paths[val_idxs],
+        mask_paths=mask_paths[val_idxs],
+        patches_paths=patches_paths[val_idxs],
         transforms=[CenterCrop(args.patch_size, args.patch_size), ToTensor()],
         step=args.data_step,
     )
@@ -325,17 +325,20 @@ if __name__ == "__main__":
         encoder_name = model[1]
     else:
         encoder_name = None
-    model = create_model(
-        model[0],
-        encoder_name=encoder_name,
-        pretrained=True,
-        img_size=args.patch_size,
-        num_classes=1,
-        norm_layer=group_norm if args.group_norm else torch.nn.BatchNorm2d,
-    )
+    kwargs = {
+        "pretrained": True,
+        "num_classes": 1,
+        "norm_layer": group_norm if args.group_norm else torch.nn.BatchNorm2d,
+    }
+    if "classification" not in args.data_type:
+        kwargs |= {
+            "encoder_name": encoder_name,
+            "img_size": args.patch_size,
+        }
+    model = create_model(model[0], **kwargs)
 
     metrics = METRICS["all"]
-    if args.ihc_type in METRICS:
+    if args.ihc_type in METRICS and "segmentation" in args.data_type:
         metrics.extend(METRICS[args.ihc_type])
     plmodule = get_model(
         args.data_type,
