@@ -1,6 +1,6 @@
 base:
   data-path: /data/anapath/AprioricsSlides
-  ihc-type: PHH3
+  ihc-type: CD3CD20
   mapping-file: ../../ihc_mapping.json
   mask-extension: .tif
   remote-path: /media/AprioricsSlides
@@ -25,5 +25,6 @@ slide_download:
 
 mask_extraction:
   dab-thr: 0.04
-  object-min-size: 50
-  binary-op: none
+  object-min-size: 100
+  binary-op: closing
+  radius: 5

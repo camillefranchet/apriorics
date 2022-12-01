@@ -1,6 +1,6 @@
 base:
   data-path: /data/anapath/AprioricsSlides
-  ihc-type: PHH3
+  ihc-type: CD3CD20
   mapping-file: ../../ihc_mapping.json
   mask-extension: .tif
   remote-path: /media/AprioricsSlides
@@ -32,7 +32,7 @@ split:
   nfolds: 5
   test-ratio: 0.1
   update: true
-  filename: splits_new.csv
+  filename: splits.csv
 
 patches:
   patch-size: 256
