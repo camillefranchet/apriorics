@@ -52,8 +52,8 @@ stages:
       --ihc-type 'PHH3' --mapping-file '../../ihc_mapping.json' --mask-extension '.npz'
       --remote-path '/media/AprioricsSlides' --slide-extension '.svs' --seed 42 --patch-size
       256 --level 0 --gpu 0 --batch-size 32 --lr 0.0002 --wd 0.01 --epochs 20 --num-workers
-      32 --scheduler 'one-cycle' --model 'resnet50' --loss 'bce' --fold 0 --p-pos
-      0.5 --data-step 1 --data-type 'classification' --splitfile splits.csv --base-size
+      32 --scheduler 'one-cycle' --model 'unet/resnet50' --loss 'bce' --fold 0 --p-pos
+      0.8 --data-step 1 --data-type 'segmentation_sparse' --splitfile splits.csv --base-size
       256 --slidefolder /data/anapath/AprioricsSlides/slides --maskfolder /data/anapath/AprioricsSlides/masks
       --trainfolder /data/anapath/AprioricsSlides/train
     deps:
@@ -66,11 +66,11 @@ stages:
       size: 5979
     outs:
     - path: .model_hash.yaml
-      md5: 7bed3dab1fc43b8c0bb2641d9738d1c4
+      md5: 91ee7050dd9d05723afd3a366b300b17
       size: 38
     - path: /data/anapath/AprioricsSlides/train/logs
-      md5: 07013e7cb089654a154bdfe2584c21dc.dir
-      size: 45753694482
+      md5: 0a743ac6a09b5c589458cf605522bc2a.dir
+      size: 45753696336
       nfiles: 64
   evaluate:
     cmd: python predict_export_geojsons.py --hash-file .model_hash.yaml --outfolder
@@ -80,26 +80,26 @@ stages:
       --ihc-type 'PHH3' --mapping-file '../../ihc_mapping.json' --mask-extension '.npz'
       --remote-path '/media/AprioricsSlides' --slide-extension '.svs' --seed 42 --patch-size
       256 --level 0 --gpu 0 --batch-size 32 --lr 0.0002 --wd 0.01 --epochs 20 --num-workers
-      32 --scheduler 'one-cycle' --model 'unet/resnet50' --loss 'sum_focal_1_dice_1'
-      --fold 0 --p_pos 0.7 --data-step 1 --data-type 'segmentation_sparse' --area-threshold
-      50 --test-fold 'test'
+      32 --scheduler 'one-cycle' --model 'unet/resnet50' --loss 'bce' --fold 0 --p-pos
+      0.8 --data-step 1 --data-type 'segmentation_sparse' --area-threshold 50 --test-fold
+      'test'
     deps:
     - path: .model_hash.yaml
-      md5: 691e335b72c5cd97a20034766da6691d
+      md5: 91ee7050dd9d05723afd3a366b300b17
       size: 38
     - path: /data/anapath/AprioricsSlides/train/logs
-      md5: f79daeda892724420b63be154798a819.dir
-      size: 44623446454
-      nfiles: 60
+      md5: 0a743ac6a09b5c589458cf605522bc2a.dir
+      size: 45753696336
+      nfiles: 64
     outs:
     - path: /data/anapath/AprioricsSlides/evaluate/PHH3/
-      md5: d34dc68120a13501e20fd853a272db10.dir
-      size: 2421670506
-      nfiles: 943
+      md5: d39b810824c933bb55c66c53adc67983.dir
+      size: 2612455726
+      nfiles: 1141
   evaluate_upload:
     cmd: rsync -avu /data/anapath/AprioricsSlides/evaluate/PHH3/ /media/AprioricsSlides/evaluate/PHH3/
     deps:
     - path: /data/anapath/AprioricsSlides/evaluate/PHH3/
-      md5: d34dc68120a13501e20fd853a272db10.dir
-      size: 2421670506
-      nfiles: 943
+      md5: d39b810824c933bb55c66c53adc67983.dir
+      size: 2612455726
+      nfiles: 1141

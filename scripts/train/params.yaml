@@ -51,12 +51,12 @@ train:
   epochs: 20
   num-workers: 32
   scheduler: one-cycle
-  model: resnet50
+  model: unet/resnet50
   loss: bce
   fold: 0
-  p-pos: 0.5
+  p-pos: 0.8
   data-step: 1
-  data-type: classification
+  data-type: segmentation_sparse
 
 evaluate:
   area-threshold: 50
