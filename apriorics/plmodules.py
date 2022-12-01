@@ -86,6 +86,7 @@ class BasicSegmentationModule(pl.LightningModule):
         loss: nn.Module,
         lr: float,
         wd: float,
+        dl_lengths: Tuple[int, int],
         scheduler_func: Optional[Callable] = None,
         metrics: Optional[Sequence[Metric]] = None,
         stain_augmentor: Optional[nn.Module] = None,
@@ -95,6 +96,7 @@ class BasicSegmentationModule(pl.LightningModule):
         self.loss = loss
         self.lr = lr
         self.wd = wd
+        self.dl_lengths = dl_lengths
         self.scheduler_func = scheduler_func
         self.metrics = MetricCollection(ifnone(metrics, []))
         self.stain_augmentor = stain_augmentor
@@ -110,7 +112,10 @@ class BasicSegmentationModule(pl.LightningModule):
         y_hat = self(x)
         loss = self.loss(y_hat, y)
 
-        if batch_idx % 500 == 0 and self.trainer.training_type_plugin.global_rank == 0:
+        if (
+            batch_idx % max(1, self.dl_lengths[0] // 5) == 0
+            and self.trainer.training_type_plugin.global_rank == 0
+        ):
             y_hat = torch.sigmoid(y_hat)
             self.log_images(x[:8], y[:8], y_hat[:8], batch_idx, step="train")
 
@@ -128,7 +133,10 @@ class BasicSegmentationModule(pl.LightningModule):
         self.log("val_loss", loss, sync_dist=True)
 
         y_hat = torch.sigmoid(y_hat)
-        if batch_idx % 200 == 0 and self.trainer.training_type_plugin.global_rank == 0:
+        if (
+            batch_idx % max(1, self.dl_lengths[1] // 5) == 0
+            and self.trainer.training_type_plugin.global_rank == 0
+        ):
             self.log_images(x[:8], y[:8], y_hat[:8], batch_idx, step="val")
 
         self.metrics(y_hat, y.int(), x=x)
@@ -139,7 +147,7 @@ class BasicSegmentationModule(pl.LightningModule):
             met = self.metrics["SegmentationAUC"]
             rec = (met.tp / (met.tp + met.fn + 1e-7)).cpu()
             fpr = (met.fp / (met.tn + met.fp + 1e-7)).cpu()
-            prec = (met.tp / (met.tp + met.fp + 1e-7)).cpu()
+            prec = ((met.tp + 1e-7) / (met.tp + met.fp + 1e-7)).cpu()
             self.logger.experiment.log_curve(
                 f"ROC_{self.current_epoch}",
                 x=fpr.tolist(),
@@ -211,6 +219,7 @@ class BasicDetectionModule(pl.LightningModule):
         model: nn.Module,
         lr: float,
         wd: float,
+        dl_lengths: Tuple[int, int],
         scheduler_func: Optional[Callable] = None,
         seg_metrics: Optional[Sequence[Metric]] = None,
         det_metrics: Optional[Sequence[Metric]] = None,
@@ -219,6 +228,7 @@ class BasicDetectionModule(pl.LightningModule):
         self.model = model
         self.lr = lr
         self.wd = wd
+        self.dl_lengths = dl_lengths
         self.scheduler_func = scheduler_func
         self.seg_metrics = MetricCollection(ifnone(seg_metrics, []))
         self.det_metrics = MetricCollection(ifnone(det_metrics, []))
@@ -250,7 +260,10 @@ class BasicDetectionModule(pl.LightningModule):
         x, y = batch
         y_hat = self(x)
 
-        if batch_idx % 100 == 0 and self.trainer.training_type_plugin.global_rank == 0:
+        if (
+            batch_idx % max(1, self.dl_lengths[1] // 5) == 0
+            and self.trainer.training_type_plugin.global_rank == 0
+        ):
             self.log_images(x, y, y_hat, batch_idx)
 
         masks_pred = []
@@ -380,6 +393,7 @@ class BasicClassificationModule(pl.LightningModule):
         loss: nn.Module,
         lr: float,
         wd: float,
+        dl_lengths: Tuple[int, int],
         scheduler_func: Optional[Callable] = None,
         metrics: Optional[Sequence[Metric]] = None,
         stain_augmentor: Optional[nn.Module] = None,
@@ -389,6 +403,7 @@ class BasicClassificationModule(pl.LightningModule):
         self.loss = loss
         self.lr = lr
         self.wd = wd
+        self.dl_lengths = dl_lengths
         self.scheduler_func = scheduler_func
         self.metrics = MetricCollection(ifnone(metrics, []))
         self.stain_augmentor = stain_augmentor
@@ -406,7 +421,10 @@ class BasicClassificationModule(pl.LightningModule):
         y_hat = self(x)
         loss = self.loss(y_hat, y)
 
-        if batch_idx % 500 == 0 and self.trainer.training_type_plugin.global_rank == 0:
+        if (
+            batch_idx % max(1, self.dl_lengths[0] // 5) == 0
+            and self.trainer.training_type_plugin.global_rank == 0
+        ):
             y_hat = torch.sigmoid(y_hat)
             self.log_images(x, y, y_hat, batch_idx, step="train")
 
@@ -424,7 +442,10 @@ class BasicClassificationModule(pl.LightningModule):
         self.log("val_loss", loss, sync_dist=True)
 
         y_hat = torch.sigmoid(y_hat)
-        if batch_idx % 200 == 0 and self.trainer.training_type_plugin.global_rank == 0:
+        if (
+            batch_idx % max(1, self.dl_lengths[1] // 5) == 0
+            and self.trainer.training_type_plugin.global_rank == 0
+        ):
             self.log_images(x, y, y_hat, batch_idx, step="val")
 
         self.metrics(y_hat, y.int())
@@ -460,6 +481,7 @@ class BasicClassificationModule(pl.LightningModule):
         self.logger.experiment.log_figure(
             figure_name=f"pred_hists_{self.current_epoch}", figure=fig
         )
+        plt.close(fig)
         self.hist.reset()
 
     def configure_optimizers(

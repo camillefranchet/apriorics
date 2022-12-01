@@ -22,7 +22,7 @@ from apriorics.data import get_dataset_cls
 from apriorics.masks import flood_full_mask
 from apriorics.metrics import MetricCollection
 from apriorics.model_components.normalization import group_norm
-from apriorics.plmodules import BasicSegmentationModule
+from apriorics.plmodules import BasicClassificationModule, BasicSegmentationModule
 from apriorics.polygons import mask_to_polygons_layer
 from apriorics.transforms import ToTensor
 
@@ -172,6 +172,8 @@ parser.add_argument(
         "detection. Default segmentation."
     ),
 )
+parser.add_argument("--classif-model")
+parser.add_argument("--classif-version")
 
 
 if __name__ == "__main__":
@@ -221,14 +223,10 @@ if __name__ == "__main__":
     ).eval()
     model.requires_grad_(False)
 
-    metrics = METRICS["all"]
-    if args.ihc_type in METRICS:
-        metrics.extend(METRICS[args.ihc_type])
-    metrics = MetricCollection(metrics).to(device)
-
     model = BasicSegmentationModule(
         model,
         loss=None,
+        dl_lengths=(0, 0),
         lr=0,
         wd=0,
     ).to(device)
@@ -236,6 +234,31 @@ if __name__ == "__main__":
     ckpt_path = logfolder / f"apriorics/{version}/checkpoints/last.ckpt"
     checkpoint = torch.load(ckpt_path)
     missing, unexpected = model.load_state_dict(checkpoint["state_dict"], strict=False)
+
+    if args.classif_model is not None and args.classif_version is not None:
+        clf = create_model(
+            args.classif_model, num_classes=1, norm_layer=torch.nn.BatchNorm2d
+        ).eval()
+        clf.requires_grad_(False)
+
+        clf = BasicClassificationModule(
+            clf, loss=None, dl_lengths=(0, 0), lr=0, wd=0
+        ).to(device)
+
+        ckpt_path = (
+            logfolder / f"apriorics/{args.classif_version}/checkpoints/last.ckpt"
+        )
+        checkpoint = torch.load(ckpt_path)
+        missing, unexpected = clf.load_state_dict(
+            checkpoint["state_dict"], strict=False
+        )
+    else:
+        clf = None
+
+    metrics = METRICS["all"]
+    if args.ihc_type in METRICS:
+        metrics.extend(METRICS[args.ihc_type])
+    metrics = MetricCollection(metrics).to(device)
 
     dataset_cls = get_dataset_cls(args.data_type)
 
@@ -279,6 +302,8 @@ if __name__ == "__main__":
             for batch_idx, (x, y) in tqdm(enumerate(dl), total=len(dl)):
                 x = x.to(device)
                 y_hat = torch.sigmoid(model(x))
+                if clf is not None:
+                    y_hat *= torch.sigmoid(clf(x))[:, None, None]
                 metrics(y_hat, y.int().to(device), x=x)
                 x = np.ascontiguousarray(
                     (x.detach().cpu().numpy().transpose(0, 2, 3, 1) * 255),
@@ -315,7 +340,8 @@ if __name__ == "__main__":
         if isinstance(polygons, Polygon):
             polygons = MultiPolygon(polygons=[polygons])
 
-        outfolder = args.outfolder / args.ihc_type / version / "geojsons"
+        suffix = "_clf" if clf is not None else ""
+        outfolder = args.outfolder / args.ihc_type / f"{version}{suffix}" / "geojsons"
         if not outfolder.exists():
             outfolder.mkdir(parents=True)
 
