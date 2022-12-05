@@ -11,19 +11,19 @@ from pathaia.util.paths import get_files
 from apriorics.data_utils import get_info_from_filename
 
 parser = ArgumentParser()
-parser.add_argument("--remote-path", type=Path, required=True)
-parser.add_argument("--remote-rel-path", type=Path, required=True)
-parser.add_argument("--data-path", type=Path, required=True)
-parser.add_argument("--rel-path", type=Path, required=True)
+parser.add_argument("--remote_path", type=Path, required=True)
+parser.add_argument("--remote_rel-path", type=Path, required=True)
+parser.add_argument("--data_path", type=Path, required=True)
+parser.add_argument("--rel_path", type=Path, required=True)
 parser.add_argument("--extension", default=".svs")
-parser.add_argument("--import-ihc", action="store_true")
-parser.add_argument("--clean-previous", action="store_true")
-parser.add_argument("--ihc-type", required=True)
-parser.add_argument("--mapping-file", type=Path, required=True)
+parser.add_argument("--import_ihc", action="store_true")
+parser.add_argument("--clean_previous", action="store_true")
+parser.add_argument("--ihc_type", required=True)
+parser.add_argument("--mapping_file", type=Path, required=True)
 parser.add_argument("--recurse", action="store_true")
-parser.add_argument("--out-csv", type=Path)
-parser.add_argument("--num-workers", type=int, default=os.cpu_count())
-parser.add_argument("--add-tree", action="store_true")
+parser.add_argument("--out_csv", type=Path)
+parser.add_argument("--num_workers", type=int, default=os.cpu_count())
+parser.add_argument("--add_tree", action="store_true")
 
 
 if __name__ == "__main__":

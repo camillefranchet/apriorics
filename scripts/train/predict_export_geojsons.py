@@ -54,7 +54,7 @@ parser.add_argument(
     required=True,
 )
 parser.add_argument(
-    "--ihc-type",
+    "--ihc_type",
     choices=IHCS,
     help=f"Name of the IHC to train for. Must be one of {', '.join(IHCS)}.",
     required=True,
@@ -93,7 +93,7 @@ parser.add_argument(
     help="GPU index to used when not using horovod. Default 0.",
 )
 parser.add_argument(
-    "--batch-size",
+    "--batch_size",
     type=int,
     default=8,
     help=(
@@ -102,13 +102,13 @@ parser.add_argument(
     ),
 )
 parser.add_argument(
-    "--patch-size",
+    "--patch_size",
     type=int,
     default=1024,
     help="Size of the patches used for training. Default 1024.",
 )
 parser.add_argument(
-    "--base-size",
+    "--base_size",
     type=int,
     default=1024,
     help=(
@@ -120,18 +120,18 @@ parser.add_argument(
     "--level", type=int, default=0, help="WSI level for patch extraction. Default 0."
 )
 parser.add_argument(
-    "--num-workers",
+    "--num_workers",
     type=int,
     default=0,
     help="Number of workers to use for data loading. Default 0 (only main process).",
 )
 parser.add_argument(
-    "--group-norm",
+    "--group_norm",
     action="store_true",
     help="Specify to use group norm instead of batch norm in model. Optional.",
 )
 parser.add_argument(
-    "--hash-file",
+    "--hash_file",
     help="Yaml file containing the hash (=version) of the model to load weights from.",
     required=True,
 )
@@ -144,27 +144,27 @@ parser.add_argument(
     ),
 )
 parser.add_argument(
-    "--area-threshold",
+    "--area_threshold",
     type=int,
     default=50,
     help="Minimum area of objects to keep. Default 50.",
 )
 parser.add_argument(
-    "--slide-extension",
+    "--slide_extension",
     default=".svs",
     help="File extension of slide files. Default .svs.",
 )
 parser.add_argument(
-    "--mask-extension",
+    "--mask_extension",
     default=".tif",
     help="File extension of mask files. Default .tif.",
 )
 parser.add_argument("--fold", default="0", help="Fold used for validation. Default 0.")
 parser.add_argument(
-    "--test-fold", default="test", help="Fold to use for test. Default test."
+    "--test_fold", default="test", help="Fold to use for test. Default test."
 )
 parser.add_argument(
-    "--data-type",
+    "--data_type",
     choices=["segmentation", "segmentation_sparse", "detection"],
     default="segmentation",
     help=(
@@ -172,8 +172,8 @@ parser.add_argument(
         "detection. Default segmentation."
     ),
 )
-parser.add_argument("--classif-model")
-parser.add_argument("--classif-version")
+parser.add_argument("--classif_model")
+parser.add_argument("--classif_version")
 
 
 if __name__ == "__main__":

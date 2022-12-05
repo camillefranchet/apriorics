@@ -10,18 +10,18 @@ from shapely.ops import clip_by_rect
 
 parser = ArgumentParser("Transforms wkt files into geojson format.")
 parser.add_argument(
-    "--data-path",
+    "--data_path",
     type=Path,
     help="Main data folder containing all input and output subfolders.",
     required=True,
 )
 parser.add_argument(
-    "--wkt-path", type=Path, help="Input folder containing wkt files.", required=True
+    "--wkt_path", type=Path, help="Input folder containing wkt files.", required=True
 )
 parser.add_argument(
-    "--geojson-path", type=Path, help="Output folder for geojson files.", required=True
+    "--geojson_path", type=Path, help="Output folder for geojson files.", required=True
 )
-parser.add_argument("--ihc-type", required=True)
+parser.add_argument("--ihc_type", required=True)
 parser.add_argument("--crop", nargs=4)
 
 
