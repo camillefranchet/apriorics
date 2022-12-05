@@ -2,12 +2,12 @@ stages:
   slide_download:
     cmd: >-
       python ../utils/file_transfer.py
-      --out-csv .downloaded_slides.csv
+      --out_csv .downloaded_slides.csv
       ${base}
       ${slide_download}
-      --extension ${base.slide-extension}
-      --rel-path ${local.slide-path}
-      --remote-rel-path ${remote.slide-path}
+      --extension ${base.slide_extension}
+      --rel_path ${local.slide_path}
+      --remote_rel_path ${remote.slide_path}
     outs:
       - .downloaded_slides.csv:
           persist: true
@@ -22,34 +22,34 @@ stages:
     deps:
       - .downloaded_slides.csv
     outs:
-      - ${base.data-path}/${local.mask-path}/${base.ihc-type}:
+      - ${base.data_path}/${local.mask_path}/${base.ihc_type}:
           persist: true
-      - ${base.data-path}/${local.wkt-path}/${base.ihc-type}:
+      - ${base.data_path}/${local.wkt_path}/${base.ihc_type}:
           persist: true
 
   wkt_to_geojson:
     cmd: >-
       python ../utils/wkt2geojsons.py
       ${local}
-      --data-path ${base.data-path}
-      --ihc-type ${base.ihc-type}
+      --data_path ${base.data_path}
+      --ihc_type ${base.ihc_type}
     deps:
-      - ${base.data-path}/${local.wkt-path}/${base.ihc-type}
+      - ${base.data_path}/${local.wkt_path}/${base.ihc_type}
     outs:
-      - ${base.data-path}/${local.geojson-path}/${base.ihc-type}:
+      - ${base.data_path}/${local.geojson_path}/${base.ihc_type}:
           persist: true
 
   geojson_upload:
     cmd: >-
       python ../utils/file_transfer.py
-      --data-path ${base.remote-path}
-      --remote-path ${base.data-path}
-      --ihc-type ${base.ihc-type}
-      --mapping-file ${base.mapping-file}
+      --data_path ${base.remote_path}
+      --remote_path ${base.data_path}
+      --ihc_type ${base.ihc_type}
+      --mapping_file ${base.mapping_file}
       --recurse
       --extension .geojson
-      --rel-path ${remote.geojson-path}
-      --remote-rel-path ${local.geojson-path}
-      --add-tree
+      --rel_path ${remote.geojson_path}
+      --remote_rel_path ${local.geojson_path}
+      --add_tree
     deps:
-      - ${base.data-path}/${local.geojson-path}/${base.ihc-type}
+      - ${base.data_path}/${local.geojson_path}/${base.ihc_type}

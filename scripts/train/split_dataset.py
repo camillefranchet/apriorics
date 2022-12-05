@@ -16,7 +16,7 @@ parser.add_argument(
     required=True,
 )
 parser.add_argument(
-    "--out-csv",
+    "--out_csv",
     type=Path,
     help="Output csv containing 2 columns: slide and split.",
     required=True,
@@ -32,7 +32,7 @@ parser.add_argument(
     help="Specify to recurse through slidefolder when looking for svs files. Optional.",
 )
 parser.add_argument(
-    "--test-ratio",
+    "--test_ratio",
     type=float,
     default=0.1,
     help="Part of the dataset to use for test. Default 0.1.",
@@ -41,7 +41,7 @@ parser.add_argument(
     "--nfolds", type=int, default=5, help="Number of folds to create. Default 5."
 )
 parser.add_argument(
-    "--ihc-type",
+    "--ihc_type",
     help="Name of the IHC.",
     required=True,
 )
@@ -53,7 +53,7 @@ parser.add_argument(
         "variable. Optional."
     ),
 )
-parser.add_argument("--mask-extension", default=".tif")
+parser.add_argument("--mask_extension", default=".tif")
 
 if __name__ == "__main__":
     args = parser.parse_known_args()[0]

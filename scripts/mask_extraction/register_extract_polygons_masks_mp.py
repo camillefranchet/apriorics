@@ -26,7 +26,7 @@ parser = ArgumentParser(
     )
 )
 parser.add_argument(
-    "--dab-thr",
+    "--dab_thr",
     type=float,
     default=0.03,
     help=(
@@ -35,7 +35,7 @@ parser.add_argument(
     ),
 )
 parser.add_argument(
-    "--object-min-size",
+    "--object_min-size",
     type=int,
     default=1000,
     help=(
@@ -44,7 +44,7 @@ parser.add_argument(
     ),
 )
 parser.add_argument(
-    "--binary-op",
+    "--binary_op",
     default="closing",
     choices=["none", "closing", "dilation"],
     help=(
@@ -84,32 +84,32 @@ parser.add_argument(
     ),
 )
 parser.add_argument(
-    "--data-path",
+    "--data_path",
     type=Path,
     help="Main data folder containing all input and output subfolders.",
     required=True,
 )
 parser.add_argument(
-    "--slide-path",
+    "--slide_path",
     type=Path,
     help="Input folder that contains input svs slide files.",
     required=True,
 )
 parser.add_argument(
-    "--ihc-type",
+    "--ihc_type",
     help=("Name of the IHC to extract masks from."),
     required=True,
 )
 parser.add_argument(
-    "--tmp-path",
+    "--tmp_path",
     type=Path,
     default="tmp",
     help=(
         "Path to the temporary folder that will be used for computation. Default tmp."
     ),
 )
-parser.add_argument("--mask-path", type=Path, help="Output mask folder.", required=True)
-parser.add_argument("--wkt-path", type=Path, help="Output wkt folder.", required=True)
+parser.add_argument("--mask_path", type=Path, help="Output mask folder.", required=True)
+parser.add_argument("--wkt_path", type=Path, help="Output wkt folder.", required=True)
 parser.add_argument(
     "--novips",
     action="store_true",
@@ -119,12 +119,12 @@ parser.add_argument(
     ),
 )
 parser.add_argument(
-    "--num-workers",
+    "--num_workers",
     type=int,
     help="Number of workers to use for processing. Defaults to all available workers.",
 )
 parser.add_argument(
-    "--slide-extension", default=".svs", help="Extension of slide files. Default .svs."
+    "--slide_extension", default=".svs", help="Extension of slide files. Default .svs."
 )
 
 

@@ -55,7 +55,7 @@ parser = ArgumentParser(
     )
 )
 parser.add_argument(
-    "--hash-file",
+    "--hash_file",
     type=Path,
     help="File to store comet experiment version hash in. Optional",
 )
@@ -68,7 +68,7 @@ parser.add_argument(
     required=True,
 )
 parser.add_argument(
-    "--ihc-type",
+    "--ihc_type",
     choices=IHCS,
     help=f"Name of the IHC to train for. Must be one of {', '.join(IHCS)}.",
     required=True,
@@ -109,7 +109,7 @@ parser.add_argument(
     help="Specify when using script with horovodrun. Optional.",
 )
 parser.add_argument(
-    "--batch-size",
+    "--batch_size",
     type=int,
     default=8,
     help=(
@@ -130,13 +130,13 @@ parser.add_argument(
     "--epochs", type=int, default=10, help="Number of epochs to train on. Default 10."
 )
 parser.add_argument(
-    "--patch-size",
+    "--patch_size",
     type=int,
     default=1024,
     help="Size of the input patches used during training. Default 1024.",
 )
 parser.add_argument(
-    "--base-size",
+    "--base_size",
     type=int,
     default=1024,
     help="Size of the original extracted patches. Default 1024.",
@@ -145,13 +145,13 @@ parser.add_argument(
     "--level", type=int, default=0, help="WSI level for patch extraction. Default 0."
 )
 parser.add_argument(
-    "--num-workers",
+    "--num_workers",
     type=int,
     default=0,
     help="Number of workers to use for data loading. Default 0 (only main process).",
 )
 parser.add_argument(
-    "--freeze-encoder",
+    "--freeze_encoder",
     action="store_true",
     help="Specify to freeze encoder when using unet model. Optional.",
 )
@@ -164,7 +164,7 @@ parser.add_argument(
     ),
 )
 parser.add_argument(
-    "--group-norm",
+    "--group_norm",
     action="store_true",
     help="Specify to use group norm instead of batch norm in model. Optional.",
 )
@@ -177,13 +177,13 @@ parser.add_argument(
     ),
 )
 parser.add_argument(
-    "--grad-accumulation",
+    "--grad_accumulation",
     type=int,
     default=1,
     help="Number of batches to accumulate gradients on. Default 1.",
 )
 parser.add_argument(
-    "--resume-version", help="Version id of a model to load weights from. Optional."
+    "--resume_version", help="Version id of a model to load weights from. Optional."
 )
 parser.add_argument(
     "--seed",
@@ -194,17 +194,17 @@ parser.add_argument(
     ),
 )
 parser.add_argument(
-    "--augment-stain",
+    "--augment_stain",
     action="store_true",
     help="Specify to use stain augmentation. Optional.",
 )
 parser.add_argument(
-    "--slide-extension",
+    "--slide_extension",
     default=".svs",
     help="File extension of slide files. Default .svs.",
 )
 parser.add_argument(
-    "--mask-extension",
+    "--mask_extension",
     default=".tif",
     help="File extension of slide files. Default .svs.",
 )
@@ -212,7 +212,7 @@ parser.add_argument(
     "--fold", default="0", help="Fold to use for validation. Default 0."
 )
 parser.add_argument(
-    "--p-pos",
+    "--p_pos",
     type=float,
     default=0.9,
     help=(
@@ -221,13 +221,13 @@ parser.add_argument(
     ),
 )
 parser.add_argument(
-    "--data-step",
+    "--data_step",
     type=int,
     default=1,
     help="Give a step n > 1 to load one every n patches only. Default 1.",
 )
 parser.add_argument(
-    "--data-type",
+    "--data_type",
     choices=["classification", "segmentation", "segmentation_sparse", "detection"],
     default="segmentation",
     help=(
@@ -236,7 +236,7 @@ parser.add_argument(
     ),
 )
 parser.add_argument(
-    "--grad-clip", type=float, help="Value to use for gradient clipping. Optional."
+    "--grad_clip", type=float, help="Value to use for gradient clipping. Optional."
 )
 
 if __name__ == "__main__":

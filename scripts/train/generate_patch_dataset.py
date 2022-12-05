@@ -40,22 +40,22 @@ parser.add_argument(
     help="Specify to recurse through slidefolder when looking for svs files. Optional.",
 )
 parser.add_argument(
-    "--ihc-type",
+    "--ihc_type",
     help="Name of the IHC.",
     required=True,
 )
 parser.add_argument(
-    "--slide-extension",
+    "--slide_extension",
     default=".svs",
     help="File extension of slide files. Default .svs.",
 )
 parser.add_argument(
-    "--mask-extension",
+    "--mask_extension",
     default=".tif",
     help="File extension of slide files. Default .svs.",
 )
 parser.add_argument(
-    "--patch-size",
+    "--patch_size",
     type=int,
     default=1024,
     help="Size of the (square) patches to extract. Default 1024.",
@@ -73,7 +73,7 @@ parser.add_argument(
     help="Part of the patches that should overlap. Default 0.",
 )
 parser.add_argument(
-    "--filter-pos",
+    "--filter_pos",
     type=int,
     default=0,
     help="Minimum number of positive pixels in mask to keep patch. Default 0.",
@@ -84,7 +84,7 @@ parser.add_argument(
     help="Specify to overwrite existing csvs. Optional.",
 )
 parser.add_argument(
-    "--num-workers",
+    "--num_workers",
     type=int,
     help="Number of workers to use for processing. Defaults to all available workers.",
 )

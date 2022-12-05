@@ -1,30 +1,30 @@
 base:
-  data-path: /data/anapath/AprioricsSlides
-  ihc-type: AE1AE3
-  mapping-file: ../../ihc_mapping.json
-  mask-extension: .tif
-  remote-path: /media/AprioricsSlides
-  slide-extension: .svs
+  data_path: /data/anapath/AprioricsSlides
+  ihc_type: AE1AE3
+  mapping_file: ../../ihc_mapping.json
+  mask_extension: .tif
+  remote_path: /media/AprioricsSlides
+  slide_extension: .svs
 
 local:
-  mask-path: masks
-  slide-path: slides
-  wkt-path: wkts
-  geojson-path: geojsons
+  mask_path: masks
+  slide_path: slides
+  wkt_path: wkts
+  geojson_path: geojsons
 
 remote:
-  mask-path: masks
-  slide-path: .
-  wkt-path: wkts
-  geojson-path: geojsons
+  mask_path: masks
+  slide_path: .
+  wkt_path: wkts
+  geojson_path: geojsons
 
 slide_download:
-  clean-previous: true
-  import-ihc: true
-  add-tree: true
+  clean_previous: true
+  import_ihc: true
+  add_tree: true
 
 mask_extraction:
-  dab-thr: 0.03
-  object-min-size: 1000
-  binary-op: closing
+  dab_thr: 0.03
+  object_min_size: 1000
+  binary_op: closing
   radius: 10

@@ -1,64 +1,64 @@
 base:
-  data-path: /data/anapath/AprioricsSlides
-  ihc-type: AE1AE3
-  mapping-file: ../../ihc_mapping.json
-  mask-extension: .tif
-  remote-path: /media/AprioricsSlides
-  slide-extension: .svs
+  data_path: /data/anapath/AprioricsSlides
+  ihc_type: AE1AE3
+  mapping_file: ../../ihc_mapping.json
+  mask_extension: .tif
+  remote_path: /media/AprioricsSlides
+  slide_extension: .svs
   seed: 42
 
 local:
-  mask-path: masks
-  slide-path: slides
-  wkt-path: wkts
-  geojson-path: geojsons
-  train-path: train
-  evaluate-path: evaluate
+  mask_path: masks
+  slide_path: slides
+  wkt_path: wkts
+  geojson_path: geojsons
+  train_path: train
+  evaluate_path: evaluate
 
 remote:
-  mask-path: masks
-  slide-path: .
-  wkt-path: wkts
-  geojson-path: geojsons
-  train-path: train
-  evaluate-path: evaluate
+  mask_path: masks
+  slide_path: .
+  wkt_path: wkts
+  geojson_path: geojsons
+  train_path: train
+  evaluate_path: evaluate
 
 slide_download:
-  clean-previous: true
-  import-ihc: false
-  add-tree: true
+  clean_previous: true
+  import_ihc: false
+  add_tree: true
 
 split:
   nfolds: 5
-  test-ratio: 0.1
+  test_ratio: 0.1
   update: true
   filename: splits.csv
 
 patches:
-  patch-size: 256
+  patch_size: 256
   level: 0
   overlap: 0.1
-  filter-pos: 0
+  filter_pos: 0
   overwrite: true
 
 train:
-  patch-size: 256
+  patch_size: 256
   level: 0
   gpu: 0
-  batch-size: 32
+  batch_size: 32
   lr: 2e-4
   wd: 0.01
   epochs: 1
-  num-workers: 32
+  num_workers: 32
   scheduler: one-cycle
   model: unet/resnet50
   loss: bce
   fold: 0
-  p-pos: 0.9
-  data-step: 1
-  data-type: segmentation
+  p_pos: 0.9
+  data_step: 1
+  data_type: segmentation
 
 evaluate:
-  area-threshold: 500
-  test-fold: test
-  flood-mask: false
+  area_threshold: 500
+  test_fold: test
+  flood_mask: false

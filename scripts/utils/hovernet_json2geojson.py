@@ -14,7 +14,7 @@ parser.add_argument(
     "--geojsonfolder", type=Path, help="Output geojson folder.", required=True
 )
 parser.add_argument("--slidefolder", type=Path)
-parser.add_argument("--crop-size", type=int)
+parser.add_argument("--crop_size", type=int)
 
 
 if __name__ == "__main__":
