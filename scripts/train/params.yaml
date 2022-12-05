@@ -44,7 +44,7 @@ patches:
 train:
   patch-size: 256
   level: 0
-  gpu: 0
+  gpu: 1
   batch-size: 32
   lr: 2e-4
   wd: 0.01
@@ -54,7 +54,7 @@ train:
   model: unet/resnet50
   loss: bce
   fold: 0
-  p-pos: 0.8
+  p-pos: 0.7
   data-step: 1
   data-type: segmentation_sparse
 

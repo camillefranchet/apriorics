@@ -51,9 +51,9 @@ stages:
     cmd: python train_segmentation.py --hash-file .model_hash.yaml --data-path '/data/anapath/AprioricsSlides'
       --ihc-type 'PHH3' --mapping-file '../../ihc_mapping.json' --mask-extension '.npz'
       --remote-path '/media/AprioricsSlides' --slide-extension '.svs' --seed 42 --patch-size
-      256 --level 0 --gpu 0 --batch-size 32 --lr 0.0002 --wd 0.01 --epochs 20 --num-workers
+      256 --level 0 --gpu 1 --batch-size 32 --lr 0.0002 --wd 0.01 --epochs 20 --num-workers
       32 --scheduler 'one-cycle' --model 'unet/resnet50' --loss 'bce' --fold 0 --p-pos
-      0.8 --data-step 1 --data-type 'segmentation_sparse' --splitfile splits.csv --base-size
+      0.7 --data-step 1 --data-type 'segmentation_sparse' --splitfile splits.csv --base-size
       256 --slidefolder /data/anapath/AprioricsSlides/slides --maskfolder /data/anapath/AprioricsSlides/masks
       --trainfolder /data/anapath/AprioricsSlides/train
     deps:
@@ -66,12 +66,12 @@ stages:
       size: 5979
     outs:
     - path: .model_hash.yaml
-      md5: 91ee7050dd9d05723afd3a366b300b17
+      md5: b96f88609deb842b49daa9a6083988fa
       size: 38
     - path: /data/anapath/AprioricsSlides/train/logs
-      md5: 0a743ac6a09b5c589458cf605522bc2a.dir
-      size: 45753696336
-      nfiles: 64
+      md5: ae1204ea66c2b3326aa6c421b4e20b44.dir
+      size: 49724637324
+      nfiles: 68
   evaluate:
     cmd: python predict_export_geojsons.py --hash-file .model_hash.yaml --outfolder
       /data/anapath/AprioricsSlides/evaluate --slidefolder /data/anapath/AprioricsSlides/slides
@@ -79,27 +79,27 @@ stages:
       --splitfile splits.csv --base-size 256 --data-path '/data/anapath/AprioricsSlides'
       --ihc-type 'PHH3' --mapping-file '../../ihc_mapping.json' --mask-extension '.npz'
       --remote-path '/media/AprioricsSlides' --slide-extension '.svs' --seed 42 --patch-size
-      256 --level 0 --gpu 0 --batch-size 32 --lr 0.0002 --wd 0.01 --epochs 20 --num-workers
+      256 --level 0 --gpu 1 --batch-size 32 --lr 0.0002 --wd 0.01 --epochs 20 --num-workers
       32 --scheduler 'one-cycle' --model 'unet/resnet50' --loss 'bce' --fold 0 --p-pos
-      0.8 --data-step 1 --data-type 'segmentation_sparse' --area-threshold 50 --test-fold
+      0.7 --data-step 1 --data-type 'segmentation_sparse' --area-threshold 50 --test-fold
       'test'
     deps:
     - path: .model_hash.yaml
-      md5: 91ee7050dd9d05723afd3a366b300b17
+      md5: b96f88609deb842b49daa9a6083988fa
       size: 38
     - path: /data/anapath/AprioricsSlides/train/logs
-      md5: 0a743ac6a09b5c589458cf605522bc2a.dir
-      size: 45753696336
-      nfiles: 64
+      md5: ae1204ea66c2b3326aa6c421b4e20b44.dir
+      size: 49724637324
+      nfiles: 68
     outs:
     - path: /data/anapath/AprioricsSlides/evaluate/PHH3/
-      md5: d39b810824c933bb55c66c53adc67983.dir
-      size: 2612455726
-      nfiles: 1141
+      md5: b193334663ffce79c4e52752e286c307.dir
+      size: 2721513258
+      nfiles: 1240
   evaluate_upload:
     cmd: rsync -avu /data/anapath/AprioricsSlides/evaluate/PHH3/ /media/AprioricsSlides/evaluate/PHH3/
     deps:
     - path: /data/anapath/AprioricsSlides/evaluate/PHH3/
-      md5: d39b810824c933bb55c66c53adc67983.dir
-      size: 2612455726
-      nfiles: 1141
+      md5: b193334663ffce79c4e52752e286c307.dir
+      size: 2721513258
+      nfiles: 1240
