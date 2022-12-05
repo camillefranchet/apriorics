@@ -14,6 +14,7 @@ from pytorch_lightning.utilities.seed import seed_everything
 from shapely.affinity import translate
 from shapely.geometry import MultiPolygon, Polygon
 from shapely.ops import unary_union
+from skimage.morphology import remove_small_holes
 from timm import create_model
 from torch.utils.data import DataLoader
 from tqdm import tqdm
@@ -174,6 +175,7 @@ parser.add_argument(
 )
 parser.add_argument("--classif-model")
 parser.add_argument("--classif-version")
+parser.add_argument("--flood-mask", action="store_true")
 
 
 if __name__ == "__main__":
@@ -311,10 +313,12 @@ if __name__ == "__main__":
                 )
                 y_hat = y_hat.cpu().numpy() > 0.5
                 for k, mask in enumerate(y_hat):
-                    img = x[k]
-                    mask = flood_full_mask(
-                        img, mask, n=20, area_threshold=args.area_threshold
-                    )
+                    if args.flood_mask:
+                        img = x[k]
+                        mask = flood_full_mask(
+                            img, mask, n=20, area_threshold=args.area_threshold
+                        )
+                    mask = remove_small_holes(mask, area_threshold=args.area_threshold)
                     if not mask.sum():
                         continue
                     idx = batch_idx * args.batch_size + k
