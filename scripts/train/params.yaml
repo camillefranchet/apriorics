@@ -37,7 +37,7 @@ split:
 patches:
   patch-size: 256
   level: 0
-  overlap: 0
+  overlap: 0.1
   filter-pos: 0
   overwrite: true
 
@@ -48,14 +48,17 @@ train:
   batch-size: 32
   lr: 2e-4
   wd: 0.01
-  epochs: 5
+  epochs: 1
   num-workers: 32
   scheduler: one-cycle
   model: unet/resnet50
   loss: bce
   fold: 0
-  p_pos: 0.8
-  data-step: 5
+  p-pos: 0.9
+  data-step: 1
+  data-type: segmentation
 
 evaluate:
-  area-threshold: 200
+  area-threshold: 500
+  test-fold: test
+  flood-mask: false
