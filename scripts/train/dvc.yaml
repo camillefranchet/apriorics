@@ -2,12 +2,12 @@ stages:
   slide_download:
     cmd: >-
       python ../utils/file_transfer.py
-      --out-csv .downloaded_slides.csv
+      --out_csv .downloaded_slides.csv
       ${base}
       ${slide_download}
-      --extension ${base.slide-extension}
-      --rel-path ${local.slide-path}
-      --remote-rel-path ${remote.slide-path}
+      --extension ${base.slide_extension}
+      --rel_path ${local.slide_path}
+      --remote_rel_path ${remote.slide_path}
     outs:
       - .downloaded_slides.csv:
           persist: true
@@ -16,15 +16,15 @@ stages:
   split_dataset:
     cmd: >-
       python split_dataset.py
-      --maskfolder ${base.data-path}/${local.mask-path}
-      --out-csv ${base.data-path}/${local.train-path}/${base.ihc-type}/${split.filename}
+      --maskfolder ${base.data_path}/${local.mask_path}
+      --out_csv ${base.data_path}/${local.train_path}/${base.ihc_type}/${split.filename}
       ${base}
       ${split}
     deps:
       - .downloaded_slides.csv
-      - ${base.data-path}/${local.mask-path}/${base.ihc-type}
+      - ${base.data_path}/${local.mask_path}/${base.ihc_type}
     outs:
-      - ${base.data-path}/${local.train-path}/${base.ihc-type}/${split.filename}:
+      - ${base.data_path}/${local.train_path}/${base.ihc_type}/${split.filename}:
           persist: true
 
   generate_patch_csvs:
@@ -32,63 +32,63 @@ stages:
       python generate_patch_dataset.py
       ${base}
       ${patches}
-      --slidefolder ${base.data-path}/${local.slide-path}
-      --maskfolder ${base.data-path}/${local.mask-path}
-      --outfolder ${base.data-path}/${local.train-path}
+      --slidefolder ${base.data_path}/${local.slide_path}
+      --maskfolder ${base.data_path}/${local.mask_path}
+      --outfolder ${base.data_path}/${local.train_path}
       
     deps:
       - .downloaded_slides.csv
-      - ${base.data-path}/${local.mask-path}/${base.ihc-type}
+      - ${base.data_path}/${local.mask_path}/${base.ihc_type}
     outs:
-      - ${base.data-path}/${local.train-path}/${base.ihc-type}/${patches.patch-size}_${patches.level}/patch_csvs:
+      - ${base.data_path}/${local.train_path}/${base.ihc_type}/${patches.patch_size}_${patches.level}/patch_csvs:
           persist: true
 
   train:
     cmd: >-
       python train_segmentation.py
-      --hash-file .model_hash.yaml
+      --hash_file .model_hash.yaml
       ${base}
       ${train}
       --splitfile ${split.filename}
-      --base-size ${patches.patch-size}
-      --slidefolder ${base.data-path}/${local.slide-path}
-      --maskfolder ${base.data-path}/${local.mask-path}
-      --trainfolder ${base.data-path}/${local.train-path}
+      --base_size ${patches.patch_size}
+      --slidefolder ${base.data_path}/${local.slide_path}
+      --maskfolder ${base.data_path}/${local.mask_path}
+      --trainfolder ${base.data_path}/${local.train_path}
     deps:
-      - ${base.data-path}/${local.train-path}/${base.ihc-type}/${patches.patch-size}_${patches.level}/patch_csvs
-      - ${base.data-path}/${local.train-path}/${base.ihc-type}/${split.filename}
+      - ${base.data_path}/${local.train_path}/${base.ihc_type}/${patches.patch_size}_${patches.level}/patch_csvs
+      - ${base.data_path}/${local.train_path}/${base.ihc_type}/${split.filename}
     outs:
       - .model_hash.yaml:
           persist: true
-      - ${base.data-path}/${local.train-path}/logs:
+      - ${base.data_path}/${local.train_path}/logs:
           persist: true
 
   evaluate:
     cmd: >-
       python predict_export_geojsons.py
-      --hash-file .model_hash.yaml
-      --outfolder ${base.data-path}/${local.evaluate-path}
-      --slidefolder ${base.data-path}/${local.slide-path}
-      --maskfolder ${base.data-path}/${local.mask-path}
-      --trainfolder ${base.data-path}/${local.train-path}
+      --hash_file .model_hash.yaml
+      --outfolder ${base.data_path}/${local.evaluate_path}
+      --slidefolder ${base.data_path}/${local.slide_path}
+      --maskfolder ${base.data_path}/${local.mask_path}
+      --trainfolder ${base.data_path}/${local.train_path}
       --splitfile ${split.filename}
-      --base-size ${patches.patch-size}
+      --base_size ${patches.patch_size}
       ${base}
       ${train}
       ${evaluate}
     deps:
       - .model_hash.yaml
-      - ${base.data-path}/${local.train-path}/logs
+      - ${base.data_path}/${local.train_path}/logs
     outs:
-      - ${base.data-path}/${local.evaluate-path}/${base.ihc-type}/:
+      - ${base.data_path}/${local.evaluate_path}/${base.ihc_type}/:
           persist: true
 
   evaluate_upload:
     cmd: >-
       rsync -avu
-      ${base.data-path}/${local.evaluate-path}/${base.ihc-type}/
-      ${base.remote-path}/${remote.evaluate-path}/${base.ihc-type}/
+      ${base.data_path}/${local.evaluate_path}/${base.ihc_type}/
+      ${base.remote_path}/${remote.evaluate_path}/${base.ihc_type}/
     deps:
-      - ${base.data-path}/${local.evaluate-path}/${base.ihc-type}/
+      - ${base.data_path}/${local.evaluate_path}/${base.ihc_type}/
 
     
