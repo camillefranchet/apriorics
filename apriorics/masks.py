@@ -276,7 +276,7 @@ def get_mask_CD3CD20(
 
     mask_ihc = remove_small_objects(
         remove_small_holes(
-            binary_closing((ihc_DAB > 0.04) & (ihc_s > 0.1), footprint=disk(2)),
+            binary_closing((ihc_DAB > 0.03) & (ihc_s > 0.1), footprint=disk(2)),
             area_threshold=300,
         ),
         min_size=100,
@@ -284,7 +284,7 @@ def get_mask_CD3CD20(
 
     mask_he_DAB = remove_small_objects(
         remove_small_holes(
-            binary_closing(he_DAB > 0.04, footprint=disk(2)), area_threshold=300
+            binary_closing(he_DAB > 0.03, footprint=disk(2)), area_threshold=300
         ),
         min_size=100,
     )
