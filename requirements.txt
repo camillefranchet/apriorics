@@ -16,5 +16,5 @@ spams==2.6.3
 staintools==2.1.2
 docker==5.0.3
 geopandas==0.10.2
-dvc==2.20.0
+dvc==2.36.0
 horovod[pytorch]==0.24.1
