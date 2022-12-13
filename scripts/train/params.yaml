@@ -54,10 +54,11 @@ train:
   model: unet/resnet50
   loss: bce
   fold: 0
-  p_pos: 0.7
+  p_pos: 0.6
   data_step: 1
   data_type: segmentation_sparse
 
 evaluate:
   area_threshold: 50
   test_fold: test
+  flood_mask: true
