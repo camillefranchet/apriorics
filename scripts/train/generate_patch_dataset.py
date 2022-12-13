@@ -21,8 +21,7 @@ parser.add_argument(
 parser.add_argument(
     "--maskfolder",
     type=Path,
-    help="Input folder containing mask tif files.",
-    required=True,
+    help="Input folder containing mask tif files. Optional.",
 )
 parser.add_argument(
     "--outfolder",
@@ -112,17 +111,21 @@ if __name__ == "__main__":
         if not args.overwrite and out_file_path.exists():
             return
 
-        mask_path = args.maskfolder / in_file_path.relative_to(
-            args.slidefolder
-        ).with_suffix(args.mask_extension)
-        if not mask_path.exists():
-            return
-
         slide = Slide(in_file_path, backend="cucim")
-        if args.mask_extension == ".tif":
-            mask = Slide(mask_path, backend="cucim")
-        elif args.mask_extension == ".npz":
-            mask = load_npz(mask_path)
+
+        if args.maskfolder is not None:
+            mask_path = args.maskfolder / in_file_path.relative_to(
+                args.slidefolder
+            ).with_suffix(args.mask_extension)
+            if not mask_path.exists():
+                return
+
+            if args.mask_extension == ".tif":
+                mask = Slide(mask_path, backend="cucim")
+            elif args.mask_extension == ".npz":
+                mask = load_npz(mask_path)
+        else:
+            mask = None
         print(in_file_path.stem)
 
         patches = slide_rois_no_image(
@@ -138,25 +141,29 @@ if __name__ == "__main__":
             writer = csv.DictWriter(out_file, fieldnames=Patch.get_fields() + ["n_pos"])
             writer.writeheader()
             for patch in patches:
-                if isinstance(mask, Slide):
-                    patch_mask = np.asarray(
-                        mask.read_region(
-                            patch.position, patch.level, patch.size
-                        ).convert("1")
-                    )
-                else:
-                    w, h = patch.size
-                    x, y = patch.position
-                    patch_mask = mask[y : y + h, x : x + w].toarray()
+                if mask is not None:
+                    if isinstance(mask, Slide):
+                        patch_mask = np.asarray(
+                            mask.read_region(
+                                patch.position, patch.level, patch.size
+                            ).convert("1")
+                        )
+                    else:
+                        w, h = patch.size
+                        x, y = patch.position
+                        patch_mask = mask[y : y + h, x : x + w].toarray()
 
-                if args.filter_pos and patch_mask.sum():
-                    patch_mask = remove_small_objects(
-                        patch_mask, min_size=args.filter_pos
-                    )
+                    if args.filter_pos and patch_mask.sum():
+                        patch_mask = remove_small_objects(
+                            patch_mask, min_size=args.filter_pos
+                        )
+                    n_pos = patch_mask.sum()
+                else:
+                    n_pos = None
+
                 row = patch.to_csv_row()
-                n_pos = patch_mask.sum()
                 row["n_pos"] = n_pos
-                if n_pos >= args.filter_pos:
+                if n_pos is None or n_pos >= args.filter_pos:
                     writer.writerow(row)
 
     with Pool(processes=args.num_workers) as pool:

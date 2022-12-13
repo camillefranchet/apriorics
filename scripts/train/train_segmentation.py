@@ -361,6 +361,7 @@ if __name__ == "__main__":
         save_dir=logfolder,
         project_name="apriorics",
         auto_metric_logging=False,
+        experiment_name=os.getenv("DVC_EXP_NAME"),
     )
 
     if not args.horovod or hvd.rank() == 0:

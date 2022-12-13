@@ -4,24 +4,19 @@ from pathlib import Path
 
 import geopandas
 import numpy as np
-import pandas as pd
 import torch
-import yaml
 from albumentations import Crop
-from metrics_config import METRICS
 from pathaia.util.paths import get_files
 from pytorch_lightning.utilities.seed import seed_everything
 from shapely.affinity import translate
 from shapely.geometry import MultiPolygon, Polygon
 from shapely.ops import unary_union
-from skimage.morphology import remove_small_holes
 from timm import create_model
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from apriorics.data import get_dataset_cls
+from apriorics.data import TestDataset
 from apriorics.masks import flood_full_mask
-from apriorics.metrics import MetricCollection
 from apriorics.model_components.normalization import group_norm
 from apriorics.plmodules import BasicClassificationModule, BasicSegmentationModule
 from apriorics.polygons import mask_to_polygons_layer
@@ -76,18 +71,6 @@ parser.add_argument(
     required=True,
 )
 parser.add_argument(
-    "--maskfolder",
-    type=Path,
-    help="Input folder containing mask files.",
-    required=True,
-)
-parser.add_argument(
-    "--splitfile",
-    type=str,
-    default="splits.csv",
-    help="Name of the csv file containing train/valid/test splits. Default splits.csv.",
-)
-parser.add_argument(
     "--gpu",
     type=int,
     default=0,
@@ -132,7 +115,7 @@ parser.add_argument(
     help="Specify to use group norm instead of batch norm in model. Optional.",
 )
 parser.add_argument(
-    "--hash_file",
+    "--version",
     help="Yaml file containing the hash (=version) of the model to load weights from.",
     required=True,
 )
@@ -155,26 +138,8 @@ parser.add_argument(
     default=".svs",
     help="File extension of slide files. Default .svs.",
 )
-parser.add_argument(
-    "--mask_extension",
-    default=".tif",
-    help="File extension of mask files. Default .tif.",
-)
-parser.add_argument("--fold", default="0", help="Fold used for validation. Default 0.")
-parser.add_argument(
-    "--test_fold", default="test", help="Fold to use for test. Default test."
-)
-parser.add_argument(
-    "--data_type",
-    choices=["segmentation", "segmentation_sparse", "detection"],
-    default="segmentation",
-    help=(
-        "Input data type. Must be one of segmentation, segmentation_sparse, "
-        "detection. Default segmentation."
-    ),
-)
-parser.add_argument("--classif-model")
-parser.add_argument("--classif-version")
+parser.add_argument("--classif_model")
+parser.add_argument("--classif_version")
 parser.add_argument("--flood_mask", action="store_true")
 
 
@@ -184,13 +149,11 @@ if __name__ == "__main__":
     seed_everything(workers=True)
 
     trainfolder = args.trainfolder / args.ihc_type
-    patch_csv_folder = trainfolder / f"{args.base_size}_{args.level}/patch_csvs"
-    slidefolder = args.slidefolder / args.ihc_type / "HE"
-    maskfolder = args.maskfolder / args.ihc_type / "HE"
+    patch_csv_folder = args.outfolder / f"{args.base_size}_{args.level}/patch_csvs"
+    slidefolder = args.slidefolder
     logfolder = args.trainfolder / "logs"
 
-    with open(args.hash_file, "r") as f:
-        version = yaml.safe_load(f)[args.fold]
+    version = args.version
 
     patches_paths = get_files(
         patch_csv_folder, extensions=".csv", recurse=False
@@ -198,15 +161,6 @@ if __name__ == "__main__":
     slide_paths = patches_paths.map(
         lambda x: slidefolder / x.with_suffix(args.slide_extension).name
     )
-    mask_paths = patches_paths.map(
-        lambda x: maskfolder / x.with_suffix(args.mask_extension).name
-    )
-
-    split_df = pd.read_csv(
-        args.trainfolder / args.ihc_type / args.splitfile
-    ).sort_values("slide")
-    split_df = split_df.loc[split_df["slide"].isin(patches_paths.map(lambda x: x.stem))]
-    val_idxs = (split_df["split"] == args.test_fold).values
 
     model = args.model.split("/")
     if model[0] == "unet":
@@ -257,13 +211,6 @@ if __name__ == "__main__":
     else:
         clf = None
 
-    metrics = METRICS["all"]
-    if args.ihc_type in METRICS:
-        metrics.extend(METRICS[args.ihc_type])
-    metrics = MetricCollection(metrics).to(device)
-
-    dataset_cls = get_dataset_cls(args.data_type)
-
     if args.patch_size < args.base_size:
         interval = int(0.3 * args.patch_size)
         max_coord = args.base_size - args.patch_size
@@ -280,17 +227,14 @@ if __name__ == "__main__":
         crops = [(0, 0, args.base_size, args.base_size)]
 
     all_metrics = {}
-    for slide_path, mask_path, patches_path in zip(
-        slide_paths[val_idxs], mask_paths[val_idxs], patches_paths[val_idxs]
-    ):
+    for slide_path, patches_path in zip(slide_paths, patches_paths):
         print(slide_path.stem)
         polygons = []
         for crop in crops:
             print(crop)
-            ds = dataset_cls(
-                [slide_path],
-                [mask_path],
-                [patches_path],
+            ds = TestDataset(
+                slide_path,
+                patches_path,
                 transforms=[Crop(*crop), ToTensor()],
             )
             dl = DataLoader(
@@ -301,12 +245,11 @@ if __name__ == "__main__":
                 pin_memory=True,
             )
 
-            for batch_idx, (x, y) in tqdm(enumerate(dl), total=len(dl)):
+            for batch_idx, x in tqdm(enumerate(dl), total=len(dl)):
                 x = x.to(device)
                 y_hat = torch.sigmoid(model(x))
                 if clf is not None:
                     y_hat *= torch.sigmoid(clf(x))[:, None, None]
-                metrics(y_hat, y.int().to(device), x=x)
                 x = np.ascontiguousarray(
                     (x.detach().cpu().numpy().transpose(0, 2, 3, 1) * 255),
                     dtype=np.uint8,
@@ -318,7 +261,6 @@ if __name__ == "__main__":
                         mask = flood_full_mask(
                             img, mask, n=20, area_threshold=args.area_threshold
                         )
-                    mask = remove_small_holes(mask, area_threshold=args.area_threshold)
                     if not mask.sum():
                         continue
                     idx = batch_idx * args.batch_size + k
@@ -351,26 +293,3 @@ if __name__ == "__main__":
 
         with open(outfolder / f"{slide_path.stem}.geojson", "w") as f:
             json.dump(geopandas.GeoSeries(polygons.geoms).__geo_interface__, f)
-
-        metrics_results = metrics.compute()
-        metrics_results = {
-            k: v.item() if isinstance(v, torch.Tensor) else v
-            for k, v in metrics_results.items()
-        }
-
-        outfolder = outfolder.parent / "metrics"
-        if not outfolder.exists():
-            outfolder.mkdir()
-
-        with open(outfolder / f"{slide_path.stem}.json", "w") as f:
-            json.dump(metrics_results, f)
-
-        for k, v in metrics_results.items():
-            if k not in all_metrics:
-                all_metrics[k] = []
-            all_metrics[k].append(v)
-        metrics.reset()
-
-    all_metrics = {k: np.mean(v) for k, v in all_metrics.items()}
-    with open(outfolder.parent / "average_metrics.json", "w") as f:
-        json.dump(all_metrics, f)
