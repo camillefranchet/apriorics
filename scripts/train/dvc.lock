@@ -93,13 +93,13 @@ stages:
       nfiles: 40
     outs:
     - path: /data/anapath/AprioricsSlides/evaluate/AE1AE3/
-      md5: 32697b9ad6496d6f036969604d5c463b.dir
-      size: 15431961732
+      md5: c54617af47f5c67c072a95ad020a2e9d.dir
+      size: 15051301800
       nfiles: 276
   evaluate_upload:
     cmd: rsync -avu /data/anapath/AprioricsSlides/evaluate/AE1AE3/ /media/AprioricsSlides/evaluate/AE1AE3/
     deps:
     - path: /data/anapath/AprioricsSlides/evaluate/AE1AE3/
-      md5: 32697b9ad6496d6f036969604d5c463b.dir
-      size: 15431961732
+      md5: c54617af47f5c67c072a95ad020a2e9d.dir
+      size: 15051301800
       nfiles: 276
