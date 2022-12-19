@@ -12,7 +12,7 @@ from apriorics.data_utils import get_info_from_filename
 
 parser = ArgumentParser()
 parser.add_argument("--remote_path", type=Path, required=True)
-parser.add_argument("--remote_rel-path", type=Path, required=True)
+parser.add_argument("--remote_rel_path", type=Path, required=True)
 parser.add_argument("--data_path", type=Path, required=True)
 parser.add_argument("--rel_path", type=Path, required=True)
 parser.add_argument("--extension", default=".svs")
