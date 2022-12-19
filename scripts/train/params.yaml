@@ -54,7 +54,7 @@ train:
   model: unet/resnet50
   loss: bce
   fold: 0
-  p_pos: 0.6
+  p_pos: 0.5
   data_step: 1
   data_type: segmentation_sparse
 

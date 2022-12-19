@@ -52,7 +52,7 @@ stages:
       --ihc_type PHH3 --mapping_file ../../ihc_mapping.json --mask_extension .npz
       --remote_path /media/AprioricsSlides --slide_extension .svs --seed 42 --patch_size
       256 --level 0 --gpu 1 --batch_size 32 --lr 0.0002 --wd 0.01 --epochs 20 --num_workers
-      32 --scheduler one-cycle --model unet/resnet50 --loss bce --fold 0 --p_pos 0.6
+      32 --scheduler one-cycle --model unet/resnet50 --loss bce --fold 0 --p_pos 0.5
       --data_step 1 --data_type segmentation_sparse --splitfile splits.csv --base_size
       256 --slidefolder /data/anapath/AprioricsSlides/slides --maskfolder /data/anapath/AprioricsSlides/masks
       --trainfolder /data/anapath/AprioricsSlides/train
@@ -66,12 +66,12 @@ stages:
       size: 5979
     outs:
     - path: .model_hash.yaml
-      md5: 928a76251d144b437bec7224134077c4
+      md5: 19d66c413a693fc7c5430dd91f3c707a
       size: 38
     - path: /data/anapath/AprioricsSlides/train/logs
-      md5: 02ecafca9d28311e5a68361a7fe3409e.dir
-      size: 53686408137
-      nfiles: 72
+      md5: 94fb52c0a2ce9deeb8d2bbf2701226cf.dir
+      size: 57657349125
+      nfiles: 76
   evaluate:
     cmd: python predict_export_geojsons.py --hash_file .model_hash.yaml --outfolder
       /data/anapath/AprioricsSlides/evaluate --slidefolder /data/anapath/AprioricsSlides/slides
@@ -80,26 +80,26 @@ stages:
       --ihc_type PHH3 --mapping_file ../../ihc_mapping.json --mask_extension .npz
       --remote_path /media/AprioricsSlides --slide_extension .svs --seed 42 --patch_size
       256 --level 0 --gpu 1 --batch_size 32 --lr 0.0002 --wd 0.01 --epochs 20 --num_workers
-      32 --scheduler one-cycle --model unet/resnet50 --loss bce --fold 0 --p_pos 0.6
+      32 --scheduler one-cycle --model unet/resnet50 --loss bce --fold 0 --p_pos 0.5
       --data_step 1 --data_type segmentation_sparse --area_threshold 50 --test_fold
       test --flood_mask
     deps:
     - path: .model_hash.yaml
-      md5: 928a76251d144b437bec7224134077c4
+      md5: 19d66c413a693fc7c5430dd91f3c707a
       size: 38
     - path: /data/anapath/AprioricsSlides/train/logs
-      md5: 02ecafca9d28311e5a68361a7fe3409e.dir
-      size: 53686408137
-      nfiles: 72
+      md5: 94fb52c0a2ce9deeb8d2bbf2701226cf.dir
+      size: 57657349125
+      nfiles: 76
     outs:
     - path: /data/anapath/AprioricsSlides/evaluate/PHH3/
-      md5: ee9d4348d5caa12f67a809c8b9361226.dir
-      size: 2807424490
-      nfiles: 1339
+      md5: 9b4de07fba05874d7455aa42e2c1f0ea.dir
+      size: 2869718653
+      nfiles: 1438
   evaluate_upload:
     cmd: rsync -avu /data/anapath/AprioricsSlides/evaluate/PHH3/ /media/AprioricsSlides/evaluate/PHH3/
     deps:
     - path: /data/anapath/AprioricsSlides/evaluate/PHH3/
-      md5: ee9d4348d5caa12f67a809c8b9361226.dir
-      size: 2807424490
-      nfiles: 1339
+      md5: 9b4de07fba05874d7455aa42e2c1f0ea.dir
+      size: 2869718653
+      nfiles: 1438
