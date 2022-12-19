@@ -476,11 +476,23 @@ class BalancedRandomSampler(RandomSampler):
         for k in tqdm(range(num_samples), total=num_samples):
             if len(avail) == 1:
                 cl_patches = avail[0]
-                idx = torch.multinomial(
-                    torch.ones(len(cl_patches)),
-                    num_samples - k,
-                    generator=self.generator,
-                )
+                n_patches = len(cl_patches)
+                max_draw = int(2**23)
+                n_draws = np.ceil(n_patches / max_draw)
+                idx = []
+                to_draw = np.ceil((num_samples - k) / n_draws)
+                for i in range(n_draws):
+                    if (n_draws > 1) and (i == n_draws - 1):
+                        to_draw = (num_samples - k) % to_draw
+                    idx.append(
+                        torch.multinomial(
+                            torch.ones(min(n_patches, int(max_draw))),
+                            to_draw,
+                            generator=self.generator,
+                        )
+                        + i * max_draw
+                    )
+                idx = torch.cat(idx)
                 idxs.extend([cl_patches[i] for i in idx])
                 break
             x = p[k]
