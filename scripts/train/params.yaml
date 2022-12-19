@@ -35,14 +35,14 @@ split:
   filename: splits.csv
 
 patches:
-  patch_size: 256
+  patch_size: 128
   level: 0
   overlap: 0.1
   filter_pos: 0
   overwrite: true
 
 train:
-  patch_size: 256
+  patch_size: 128
   level: 0
   gpu: 1
   batch_size: 32
