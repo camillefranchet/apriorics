@@ -403,6 +403,6 @@ if __name__ == "__main__":
             # ckpt_path=ckpt_path,
         )
     finally:
-        if args.hash_file is not None and trainer.current_epoch:
+        if args.hash_file is not None:
             with open(args.hash_file, "w") as f:
                 yaml.dump({args.fold: logger.version}, f)
