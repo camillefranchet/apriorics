@@ -264,7 +264,7 @@ def get_mask_CD3CD20(
     ihc_DAB = rgb2hed(ihc)[:, :, 2]
     ihc_s = rgb2hsv(ihc)[:, :, 1]
 
-    mask_he1 = (he_H > 0.03) & (he_H < 0.14) & (he_hue > 0.67)
+    mask_he1 = (he_H > 0.05) & (he_H < 0.14) & (he_hue > 0.67)
     mask_he2 = get_mask_ink(he)
 
     mask_he = remove_small_objects(
@@ -276,7 +276,7 @@ def get_mask_CD3CD20(
 
     mask_ihc = remove_small_objects(
         remove_small_holes(
-            binary_closing((ihc_DAB > 0.03) & (ihc_s > 0.1), footprint=disk(2)),
+            binary_closing((ihc_DAB > 0.01) & (ihc_s > 0.01), footprint=disk(2)),
             area_threshold=300,
         ),
         min_size=100,
