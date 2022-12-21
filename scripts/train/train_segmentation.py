@@ -263,9 +263,7 @@ if __name__ == "__main__":
         lambda x: slidefolder / x.with_suffix(args.slide_extension).name
     )
 
-    split_df = pd.read_csv(
-        args.trainfolder / args.ihc_type / args.splitfile
-    ).sort_values("slide")
+    split_df = pd.read_csv(args.trainfolder / args.splitfile).sort_values("slide")
     split_df = split_df.loc[split_df["slide"].isin(patches_paths.map(lambda x: x.stem))]
     val_idxs = (split_df["split"] == args.fold).values
     train_idxs = ~val_idxs
