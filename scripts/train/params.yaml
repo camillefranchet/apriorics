@@ -33,6 +33,9 @@ split:
   test_ratio: 0.1
   update: true
   filename: splits.csv
+  locked_test_filename: pam50_slides.txt
+  min_slide: 4
+  max_slide: 1288
 
 patches:
   patch_size: 256
