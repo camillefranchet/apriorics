@@ -24,7 +24,7 @@ remote:
   evaluate_path: evaluate
 
 slide_download:
-  clean_previous: true
+  clean_previous: false
   import_ihc: false
   add_tree: true
 
@@ -42,18 +42,23 @@ patches:
   overwrite: true
 
 train:
-  patch_size: 224
+  patch_size: 256
   level: 0
   gpu: 0
   batch_size: 32
   lr: 2e-4
   wd: 0.01
-  epochs: 20
+  epochs: 1
   num_workers: 32
   scheduler: one-cycle
   model: unet/resnet50
   loss: bce
   fold: 0
+  p_pos: 0.9
+  daya_step: 1
+  data_type: segmentation
 
 evaluate:
-  area_threshold: 50
+  area_threshold: 100
+  test_fold: test
+  flood_mask: false
