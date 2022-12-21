@@ -175,7 +175,7 @@ parser.add_argument(
 )
 parser.add_argument("--classif-model")
 parser.add_argument("--classif-version")
-parser.add_argument("--flood-mask", action="store_true")
+parser.add_argument("--flood_mask", action="store_true")
 
 
 if __name__ == "__main__":
