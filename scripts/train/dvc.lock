@@ -30,23 +30,16 @@ stages:
       size: 4648579212
       nfiles: 485
   split_dataset:
-    cmd: python split_dataset.py --maskfolder /data/anapath/AprioricsSlides/masks
-      --out-csv /data/anapath/AprioricsSlides/train/PHH3/splits.csv --data-path '/data/anapath/AprioricsSlides'
-      --ihc-type 'PHH3' --mapping-file '../../ihc_mapping.json' --mask-extension '.npz'
-      --remote-path '/media/AprioricsSlides' --slide-extension '.svs' --seed 42 --nfolds
-      5 --test-ratio 0.1 --update --filename 'splits.csv'
-    deps:
-    - path: .downloaded_slides.csv
-      md5: b22086e2f3720da570407aeff2b49b12
-      size: 67649
-    - path: /data/anapath/AprioricsSlides/masks/PHH3
-      md5: db61f4928484cc28790423c53ffdf47d.dir
-      size: 11763931
-      nfiles: 485
+    cmd: python split_full_dataset.py --out_csv /data/anapath/AprioricsSlides/train/splits.csv
+      --locked_test_file /data/anapath/AprioricsSlides/train/pam50_slides.txt --data_path
+      /data/anapath/AprioricsSlides --ihc_type PHH3 --mapping_file ../../ihc_mapping.json
+      --mask_extension .npz --remote_path /media/AprioricsSlides --slide_extension
+      .svs --seed 42 --nfolds 5 --test_ratio 0.1 --update --filename splits.csv --locked_test_filename
+      pam50_slides.txt --min_slide 4 --max_slide 1288
     outs:
-    - path: /data/anapath/AprioricsSlides/train/PHH3/splits.csv
-      md5: c01938788372b60bab4e023a69c64067
-      size: 5979
+    - path: /data/anapath/AprioricsSlides/train/splits.csv
+      md5: bc15256060dfdce2f06a9b524b162b86
+      size: 15819
   train:
     cmd: python train_segmentation.py --hash_file .model_hash.yaml --data_path /data/anapath/AprioricsSlides
       --ihc_type PHH3 --mapping_file ../../ihc_mapping.json --mask_extension .npz
