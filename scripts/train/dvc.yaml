@@ -15,16 +15,13 @@ stages:
 
   split_dataset:
     cmd: >-
-      python split_dataset.py
-      --maskfolder ${base.data_path}/${local.mask_path}
-      --out_csv ${base.data_path}/${local.train_path}/${base.ihc_type}/${split.filename}
+      python split_full_dataset.py
+      --out_csv ${base.data_path}/${local.train_path}/${split.filename}
+      --locked_test_file ${base.data_path}/${local.train_path}/${split.locked_test_filename}
       ${base}
       ${split}
-    deps:
-      - .downloaded_slides.csv
-      - ${base.data_path}/${local.mask_path}/${base.ihc_type}
     outs:
-      - ${base.data_path}/${local.train_path}/${base.ihc_type}/${split.filename}:
+      - ${base.data_path}/${local.train_path}/${split.filename}:
           persist: true
 
   generate_patch_csvs:
@@ -56,7 +53,7 @@ stages:
       --trainfolder ${base.data_path}/${local.train_path}
     deps:
       - ${base.data_path}/${local.train_path}/${base.ihc_type}/${patches.patch_size}_${patches.level}/patch_csvs
-      - ${base.data_path}/${local.train_path}/${base.ihc_type}/${split.filename}
+      - ${base.data_path}/${local.train_path}/${split.filename}
     outs:
       - .model_hash.yaml:
           persist: true
