@@ -173,8 +173,8 @@ parser.add_argument(
         "detection. Default segmentation."
     ),
 )
-parser.add_argument("--classif-model")
-parser.add_argument("--classif-version")
+parser.add_argument("--classif_model")
+parser.add_argument("--classif_version")
 parser.add_argument("--flood_mask", action="store_true")
 
 
