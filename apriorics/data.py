@@ -478,9 +478,9 @@ class BalancedRandomSampler(RandomSampler):
                 cl_patches = avail[0]
                 n_patches = len(cl_patches)
                 max_draw = int(2**23)
-                n_draws = np.ceil(n_patches / max_draw)
+                n_draws = int(np.ceil(n_patches / max_draw))
                 idx = []
-                to_draw = np.ceil((num_samples - k) / n_draws)
+                to_draw = int(np.ceil((num_samples - k) / n_draws))
                 for i in range(n_draws):
                     if (n_draws > 1) and (i == n_draws - 1):
                         to_draw = (num_samples - k) % to_draw
