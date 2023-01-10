@@ -21,14 +21,14 @@ stages:
       md5: 27a82aed3239c9bd8d1d46171b8891ec
       size: 87983
     - path: /data/anapath/AprioricsSlides/masks/CD3CD20
-      md5: c0066f84c6c177046ce66cc2fef66f56.dir
-      size: 47744078569
-      nfiles: 81
+      md5: 9de7186c9ec56edde23bfd0c89ee5583.dir
+      size: 63729463318
+      nfiles: 108
     outs:
     - path: /data/anapath/AprioricsSlides/train/CD3CD20/256_0/patch_csvs
-      md5: 7c81642b67113ecf6ea0f90ccf3b8d05.dir
-      size: 194951288
-      nfiles: 81
+      md5: 5d163ef67916e71fccbaf49d5c047887.dir
+      size: 259701137
+      nfiles: 108
   split_dataset:
     cmd: python split_full_dataset.py --out_csv /data/anapath/AprioricsSlides/train/splits.csv
       --locked_test_file /data/anapath/AprioricsSlides/train/pam50_slides.txt --data_path

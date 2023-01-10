@@ -51,15 +51,16 @@ train:
   batch_size: 32
   lr: 2e-4
   wd: 0.01
-  epochs: 1
+  epochs: 40
   num_workers: 32
   scheduler: one-cycle
   model: unet/resnet50
   loss: bce
   fold: 0
-  p_pos: 0.9
+  p_pos: 0.8
   daya_step: 1
   data_type: segmentation
+  augment_stain: true
 
 evaluate:
   area_threshold: 100
