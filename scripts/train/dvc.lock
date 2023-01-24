@@ -45,27 +45,27 @@ stages:
     cmd: python train_segmentation.py --hash_file .model_hash.yaml --data_path /data/anapath/AprioricsSlides
       --ihc_type AE1AE3 --mapping_file ../../ihc_mapping.json --mask_extension .tif
       --remote_path /media/AprioricsSlides --slide_extension .svs --seed 42 --patch_size
-      256 --level 0 --gpu 0 --batch_size 32 --lr 0.0002 --wd 0.01 --epochs 1 --num_workers
+      256 --level 0 --gpu 0 --batch_size 32 --lr 0.0002 --wd 0.01 --epochs 5 --num_workers
       32 --scheduler one-cycle --model unet/resnet50 --loss bce --fold 0 --p_pos 0.7
-      --data_step 1 --data_type segmentation --splitfile splits.csv --base_size 256
-      --slidefolder /data/anapath/AprioricsSlides/slides --maskfolder /data/anapath/AprioricsSlides/masks
-      --trainfolder /data/anapath/AprioricsSlides/train
+      --data_step 1 --data_type segmentation --augment_stain --splitfile splits.csv
+      --base_size 256 --slidefolder /data/anapath/AprioricsSlides/slides --maskfolder
+      /data/anapath/AprioricsSlides/masks --trainfolder /data/anapath/AprioricsSlides/train
     deps:
     - path: /data/anapath/AprioricsSlides/train/AE1AE3/256_0/patch_csvs
       md5: 520c7f6d3dc087356a758bc09b2b04eb.dir
       size: 1091864207
       nfiles: 488
-    - path: /data/anapath/AprioricsSlides/train/AE1AE3/splits.csv
-      md5: f0b16a3689d99b3601fc1a6ade1effb4
-      size: 6015
+    - path: /data/anapath/AprioricsSlides/train/splits.csv
+      md5: bc15256060dfdce2f06a9b524b162b86
+      size: 15819
     outs:
     - path: .model_hash.yaml
-      md5: c55c01eb5a04518c53c5d9ccc744b3c8
+      md5: 5f70d93102f9229421afcb9cc2e9ff30
       size: 38
     - path: /data/anapath/AprioricsSlides/train/logs
-      md5: ef5885869d068d606ae01cf71fe0869f.dir
-      size: 28199405647
-      nfiles: 42
+      md5: 69ea6064211dab313a664a3922de142d.dir
+      size: 32170346317
+      nfiles: 46
   evaluate:
     cmd: python predict_export_geojsons.py --hash_file .model_hash.yaml --outfolder
       /data/anapath/AprioricsSlides/evaluate --slidefolder /data/anapath/AprioricsSlides/slides
@@ -73,26 +73,27 @@ stages:
       --splitfile splits.csv --base_size 256 --data_path /data/anapath/AprioricsSlides
       --ihc_type AE1AE3 --mapping_file ../../ihc_mapping.json --mask_extension .tif
       --remote_path /media/AprioricsSlides --slide_extension .svs --seed 42 --patch_size
-      256 --level 0 --gpu 0 --batch_size 32 --lr 0.0002 --wd 0.01 --epochs 1 --num_workers
+      256 --level 0 --gpu 0 --batch_size 32 --lr 0.0002 --wd 0.01 --epochs 5 --num_workers
       32 --scheduler one-cycle --model unet/resnet50 --loss bce --fold 0 --p_pos 0.7
-      --data_step 1 --data_type segmentation --area_threshold 500 --test_fold test
+      --data_step 1 --data_type segmentation --augment_stain --area_threshold 500
+      --test_fold test
     deps:
     - path: .model_hash.yaml
-      md5: c55c01eb5a04518c53c5d9ccc744b3c8
+      md5: 5f70d93102f9229421afcb9cc2e9ff30
       size: 38
     - path: /data/anapath/AprioricsSlides/train/logs
-      md5: ef5885869d068d606ae01cf71fe0869f.dir
-      size: 28199405647
-      nfiles: 42
+      md5: 69ea6064211dab313a664a3922de142d.dir
+      size: 32170346317
+      nfiles: 46
     outs:
     - path: /data/anapath/AprioricsSlides/evaluate/AE1AE3/
-      md5: 44258c3d44d53035a2a0030d64864bf5.dir
-      size: 20017726103
-      nfiles: 375
+      md5: d6ddff047661b765475e416feff12705.dir
+      size: 20017742503
+      nfiles: 518
   evaluate_upload:
     cmd: rsync -avu /data/anapath/AprioricsSlides/evaluate/AE1AE3/ /media/AprioricsSlides/evaluate/AE1AE3/
     deps:
     - path: /data/anapath/AprioricsSlides/evaluate/AE1AE3/
-      md5: 44258c3d44d53035a2a0030d64864bf5.dir
-      size: 20017726103
-      nfiles: 375
+      md5: d6ddff047661b765475e416feff12705.dir
+      size: 20017742503
+      nfiles: 518
