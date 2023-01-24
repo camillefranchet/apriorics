@@ -108,7 +108,10 @@ class BasicSegmentationModule(pl.LightningModule):
         x, y = batch
         if self.stain_augmentor is not None:
             with torch.autocast("cuda", enabled=False):
-                x = self.stain_augmentor(x)
+                try:
+                    x = self.stain_augmentor(x)
+                except RuntimeError:
+                    pass
         y_hat = self(x)
         loss = self.loss(y_hat, y)
 
