@@ -187,7 +187,7 @@ def register_extract_mask(args, patch_he):
     maxiter = 4
 
     while restart and count < maxiter:
-        restart = not full_registration(
+        container = full_registration(
             slide_he,
             slide_ihc,
             patch_he,
@@ -198,6 +198,7 @@ def register_extract_mask(args, patch_he):
             iterations=iterations,
             threads=1,
         )
+        restart = container is False
         if restart:
             break
         else:
@@ -205,9 +206,13 @@ def register_extract_mask(args, patch_he):
                 ihc = Image.open(base_path / "ihc_warped.png").convert("RGB").crop(box)
             except FileNotFoundError:
                 print(f"[{pid}] ERROR: HE={patch_he}/IHC={patch_ihc}. Restarting...")
+                container.stop()
+                container.remove()
                 return
             tissue_mask = get_tissue_mask(np.asarray(ihc.convert("L")), whitetol=256)
             if tissue_mask.sum() < 0.999 * tissue_mask.size:
+                container.stop()
+                container.remove()
                 restart = True
                 iterations *= 2
                 count += 1
@@ -226,6 +231,15 @@ def register_extract_mask(args, patch_he):
     polygons = mask_to_polygons_layer(mask, 0, 0)
     x, y = patch_he.position
     moved_polygons = translate(polygons, x + crop, y + crop)
+
+    res = container.exec_run("rm -rf /data/*", stream=True)
+
+    with open(base_path / "log", "ab") as f:
+        for chunk in res.output:
+            f.write(chunk)
+
+    container.stop()
+    container.remove()
 
     print(f"[{pid}] Mask done.")
     return moved_polygons
