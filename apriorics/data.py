@@ -1,6 +1,9 @@
 import csv
 from os import PathLike
+import os
 from typing import Iterator, List, Optional, Sequence, Tuple, Union
+
+import torchvision
 
 import numpy as np
 import torch
@@ -10,6 +13,15 @@ from pathaia.util.types import Patch, Slide
 from scipy.sparse import load_npz
 from torch.utils.data import Dataset, RandomSampler, Sampler
 from tqdm import tqdm
+
+import json
+import glob
+from shapely.geometry import shape, GeometryCollection
+from shapely.geometry.polygon import Polygon
+from shapely.ops import clip_by_rect
+
+from imantics import Polygons, Mask
+
 
 from apriorics.masks import mask_to_bbox
 from apriorics.transforms import StainAugmentor
@@ -150,6 +162,7 @@ class SparseSegmentationDataset(Dataset):
         self.masks = []
         self.patches = []
         self.slide_idxs = []
+        self.slide_id = []
         self.n_pos = []
 
         for slide_idx, (patches_path, slide_path, mask_path) in enumerate(
@@ -164,6 +177,8 @@ class SparseSegmentationDataset(Dataset):
                         self.patches.append(Patch.from_csv_row(patch))
                         self.n_pos.append(patch["n_pos"])
                         self.slide_idxs.append(slide_idx)
+                        self.slide_id.append(patch['global_id'].split('.svs')[0])
+
 
         self.n_pos = np.array(self.n_pos, dtype=np.uint64)
 
@@ -203,6 +218,140 @@ class SparseSegmentationDataset(Dataset):
 
         transformed = self.transforms(image=slide_region, mask=mask_region)
         return transformed["image"], transformed["mask"]
+
+
+class SparseDetectionDataset(Dataset):
+    r"""
+    PyTorch dataset for slide segmentation tasks.
+
+    Args:
+        slide_paths: list of slides' filepaths.
+        mask_paths: list of masks' filepaths. Masks are supposed to be tiled pyramidal
+            images.
+        patches_paths: list of patch csvs' filepaths. Files must be formatted according
+            to `PathAIA API <https://github.com/MicroMedIAn/PathAIA>`_.
+        stain_matrices_paths: path to stain matrices .npy files. Each file must contain
+            a (2, 3) matrice to use for stain separation. If not sppecified while
+            `stain_augmentor` is, stain matrices will be computed at runtime (can cause
+            a bottleneckd uring training).
+        stain_augmentor: :class:`~apriorics.transforms.StainAugmentor` object to use for
+            stain augmentation.
+        transforms: list of `albumentation <https://albumentations.ai/>`_ transforms to
+            use on images (and on masks when relevant).
+        slide_backend: whether to use `OpenSlide <https://openslide.org/>`_ or
+            `cuCIM <https://github.com/rapidsai/cucim>`_ to load slides.
+        step: give a step n > 1 to load one every n patches only.
+    """
+
+    def __init__(
+        self,
+        slide_paths: Sequence[PathLike],
+        mask_paths: Sequence[PathLike],
+        patches_paths: Sequence[PathLike],
+        stain_matrices_paths: Optional[Sequence[PathLike]] = None,
+        stain_augmentor: Optional[StainAugmentor] = None,
+        transforms: Optional[Sequence[BasicTransform]] = None,
+        slide_backend: str = "cucim",
+        step: int = 1,
+        min_size: int = 10,
+        **kwargs
+    ):
+        super().__init__()
+        self.slides = []
+        self.masks = []
+        self.patches = []
+        self.slide_idxs = []
+        self.slide_id = []
+        self.n_pos = []
+        self.labels = []
+
+        for slide_idx, (patches_path, slide_path, mask_path) in enumerate(
+            zip(patches_paths, slide_paths, mask_paths)
+        ):
+            self.slides.append(Slide(slide_path, backend=slide_backend))
+            self.masks.append(load_npz(mask_path))
+            with open(patches_path, "r") as patch_file:
+                reader = csv.DictReader(patch_file)
+                for k, patch in enumerate(reader):
+                    if k % step == 0:
+                        self.patches.append(Patch.from_csv_row(patch))
+                        self.n_pos.append(patch["n_pos"])
+                        self.slide_idxs.append(slide_idx)
+                        self.slide_id.append(patch['global_id'].split('.svs')[0])
+
+
+        self.n_pos = np.array(self.n_pos, dtype=np.uint64)
+
+        if stain_matrices_paths is None:
+            self.stain_matrices = None
+        else:
+            self.stain_matrices = [np.load(path) for path in stain_matrices_paths]
+        self.stain_augmentor = stain_augmentor
+        self.transforms = Compose(ifnone(transforms, []))
+        self.min_size = min_size
+        self.clean()
+
+    def __len__(self):
+        return len(self.patches)
+
+    def __getitem__(
+        self, idx: int
+    ) -> Tuple[Union[np.ndarray, torch.Tensor], Union[np.ndarray, torch.Tensor]]:
+        patch = self.patches[idx]
+        slide_idx = self.slide_idxs[idx]
+        slide = self.slides[slide_idx]
+        mask = self.masks[slide_idx]
+
+        slide_region = np.asarray(
+            slide.read_region(patch.position, patch.level, patch.size).convert("RGB")
+        )
+        x, y = patch.position
+        w, h = patch.size
+        mask_region = mask[y : y + h, x : x + w].toarray().astype(np.float32)
+
+        if self.stain_augmentor is not None:
+            if self.stain_matrices is not None:
+                stain_matrix = self.stain_matrices[slide_idx]
+            else:
+                stain_matrix = None
+            slide_region = self.stain_augmentor(image=(slide_region, stain_matrix))[
+                "image"
+            ]
+
+        retransform = True
+        count = 0
+        while retransform and count < 10:
+            transformed = self.transforms(image=slide_region, mask=mask_region)
+            retransform = transformed["mask"].sum() < self.min_size
+            count += 1
+        if retransform:
+            return
+
+        bboxes, masks = mask_to_bbox(transformed["mask"], pad=1, min_size=0)
+        target = {
+            "boxes": bboxes,
+            "masks": masks,
+            "labels": torch.ones(bboxes.shape[0], dtype=torch.int64),
+        }
+
+        return transformed["image"], target
+
+    def clean(self):
+        patches = []
+        slide_idxs = []
+        idxs = []
+        slide_id = []
+        for i in range(len(self)):
+            if self[i] is not None:
+                patches.append(self.patches[i])
+                slide_idxs.append(self.slide_idxs[i])
+                slide_id.append(self.slide_id[i])
+                idxs.append(i)
+
+        self.patches = patches
+        self.slide_idxs = slide_idxs
+        self.n_pos = self.n_pos[idxs]
+        self.slide_id = slide_id
 
 
 class DetectionDataset(Dataset):
@@ -245,6 +394,7 @@ class DetectionDataset(Dataset):
         self.patches = []
         self.slide_idxs = []
         self.n_pos = []
+        self.slide_id = []
 
         for slide_idx, (patches_path, slide_path, mask_path) in enumerate(
             zip(patches_paths, slide_paths, mask_paths)
@@ -257,6 +407,7 @@ class DetectionDataset(Dataset):
                     self.patches.append(Patch.from_csv_row(patch))
                     self.n_pos.append(patch["n_pos"])
                     self.slide_idxs.append(slide_idx)
+                    self.slide_id.append(patch['global_id'].split('.svs')[0])
 
         self.n_pos = np.array(self.n_pos, dtype=np.uint64)
 
@@ -318,15 +469,19 @@ class DetectionDataset(Dataset):
         patches = []
         slide_idxs = []
         idxs = []
+        slide_id = []
+       
         for i in range(len(self)):
             if self[i] is not None:
                 patches.append(self.patches[i])
                 slide_idxs.append(self.slide_idxs[i])
+                slide_id.append(self.slide_id[i])
                 idxs.append(i)
 
         self.patches = patches
         self.slide_idxs = slide_idxs
         self.n_pos = self.n_pos[idxs]
+        self.slide_id = slide_id
 
 
 class ClassifDataset(Dataset):
@@ -570,3 +725,64 @@ class TestDataset(Dataset):
 
         transformed = self.transforms(image=slide_region)
         return transformed["image"]
+
+
+class CocoDetectionYOLOS(torchvision.datasets.CocoDetection):
+    def __init__(self, img_folder, feature_extractor, train=True):
+        ann_file = os.path.join(img_folder, "custom_train.json" if train else "custom_val.json")
+        super(CocoDetectionYOLOS, self).__init__(img_folder, ann_file)
+        self.feature_extractor = feature_extractor
+
+    def __getitem__(self, idx):
+        # read in PIL image and target in COCO format
+        img, target = super(CocoDetectionYOLOS, self).__getitem__(idx)
+        
+        # preprocess image and target (converting target to DETR format, resizing + normalization of both image and target)
+        image_id = self.ids[idx]
+        target = {'image_id': image_id, 'annotations': target}
+        encoding = self.feature_extractor(images=img, annotations=target, return_tensors="pt")
+        pixel_values = encoding["pixel_values"].squeeze() # remove batch dimension
+        target = encoding["labels"][0] # remove batch dimension
+
+        return pixel_values, target
+
+
+class CocoDetectionDetr(torchvision.datasets.CocoDetection):
+    def __init__(self, img_folder, feature_extractor, train=True):
+        ann_file = os.path.join(img_folder, "custom_train.json" if train else "custom_val.json")
+        super(CocoDetectionDetr, self).__init__(img_folder, ann_file)
+        self.feature_extractor = feature_extractor
+
+    def __getitem__(self, idx):
+        # read in PIL image and target in COCO format
+        img, target = super(CocoDetectionDetr, self).__getitem__(idx)
+        
+        # preprocess image and target (converting target to Detr format, resizing + normalization of both image and target)
+        image_id = self.ids[idx]
+        target = {'image_id': image_id, 'annotations': target}
+        encoding = self.feature_extractor(images=img, annotations=target, return_tensors="pt")
+        pixel_values = encoding["pixel_values"].squeeze() # remove batch dimension
+        target = encoding["labels"][0] # remove batch dimension
+
+        return pixel_values, target
+
+
+
+class CocoDetectionDeformableDetr(torchvision.datasets.CocoDetection):
+    def __init__(self, img_folder, feature_extractor, train=True):
+        ann_file = os.path.join(img_folder, "custom_train.json" if train else "custom_val.json")
+        super(CocoDetectionDeformableDetr, self).__init__(img_folder, ann_file)
+        self.feature_extractor = feature_extractor
+
+    def __getitem__(self, idx):
+        # read in PIL image and target in COCO format
+        img, target = super(CocoDetectionDeformableDetr, self).__getitem__(idx)
+        
+        # preprocess image and target (converting target to Detr format, resizing + normalization of both image and target)
+        image_id = self.ids[idx]
+        target = {'image_id': image_id, 'annotations': target}
+        encoding = self.feature_extractor(images=img, annotations=target, return_tensors="pt")
+        pixel_values = encoding["pixel_values"].squeeze() # remove batch dimension
+        target = encoding["labels"][0] # remove batch dimension
+
+        return pixel_values, target

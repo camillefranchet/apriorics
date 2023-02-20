@@ -7,6 +7,11 @@ import torch.nn.functional as F
 from nptyping import NDArray
 from torch import nn
 
+from transformers import AutoFeatureExtractor, AutoModelForObjectDetection, DetrFeatureExtractor, DetrForObjectDetection, DeformableDetrForObjectDetection
+import pytorch_lightning as pl
+from torchmetrics.detection.mean_ap import MeanAveragePrecision
+from datasets import get_coco_api_from_dataset
+
 from apriorics.model_components.axialnet import (
     AxialBlock,
     AxialBlock_dynamic,
@@ -22,7 +27,8 @@ from apriorics.model_components.decoder_blocks import DecoderBlock, PixelShuffle
 from apriorics.model_components.hooks import Hooks
 from apriorics.model_components.normalization import bc_norm, group_norm
 from apriorics.model_components.utils import get_sizes
-
+from datasets.coco_eval import CocoEvaluator
+from datasets import get_coco_api_from_dataset
 
 class CBR(nn.Module):
     """"""
@@ -647,3 +653,456 @@ def logo(**kwargs):
 def unet(pretrained=True, encoder_name="cbr_5_32_4", **kwargs):
     model = DynamicUnet(encoder_name, pretrained=pretrained, **kwargs)
     return model
+
+# Nécessaire car le formmatage précédent ne fonctionne plus ...
+# TODO : Etudier COCOEval de pycocotools pour voir s'il n'y a pas une méthode plus propre
+correspondance_stats = {0:'(AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ]',
+                     1:'(AP) @[ IoU=0.50      | area=   all | maxDets=100 ]',
+                     2:'(AP) @[ IoU=0.75      | area=   all | maxDets=100 ]',
+                     3:'(AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ]',
+                     4:'(AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ]',
+                     5:'(AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ]',
+                     6:'(AR) @[ IoU=0.50:0.95 | area=   all | maxDets=  1 ]',
+                     7:'(AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 10 ]',
+                     8:'(AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ]',
+                     9:'(AR) @[ IoU=0.50:0.95 | area= small | maxDets=100 ]',
+                     10:'(AR) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ]',
+                     11:'(AR) @[ IoU=0.50:0.95 | area= large | maxDets=100 ]'}
+
+class YOLOS(pl.LightningModule):
+
+     def __init__(self, lr, weight_decay, val_dataset):
+         super().__init__()
+         # replace COCO classification head with custom head
+         self.model = AutoModelForObjectDetection.from_pretrained("hustvl/yolos-small", 
+                                                             num_labels=1,
+                                                             ignore_mismatched_sizes=True)
+         # see https://github.com/PyTorchLightning/pytorch-lightning/pull/1896
+         self.lr = lr
+         self.weight_decay = weight_decay
+         self.iou_types = ['bbox']
+         self.base_ds = get_coco_api_from_dataset(val_dataset) # this is actually just calling the coco attribute
+         self.coco_evaluator = CocoEvaluator(self.base_ds, self.iou_types) # initialize evaluator with ground truths
+         self.feature_extractor = AutoFeatureExtractor.from_pretrained("hustvl/yolos-small", size=512, max_size=864)
+
+
+
+     def forward(self, pixel_values):
+       outputs = self.model(pixel_values=pixel_values)
+
+       return outputs
+     
+     def common_step(self, batch, batch_idx):
+       pixel_values = batch["pixel_values"]
+       labels = [{k: v.to(self.device) for k, v in t.items()} for t in batch["labels"]]
+
+       outputs = self.model(pixel_values=pixel_values, labels=labels)
+
+       loss = outputs.loss
+       loss_dict = outputs.loss_dict
+
+       return loss, loss_dict
+
+     def training_step(self, batch, batch_idx):
+        loss, loss_dict = self.common_step(batch, batch_idx)     
+        # logs metrics for each training_step,
+        # and the average across the epoch
+        self.log("training_loss", loss)
+        for k,v in loss_dict.items():
+          self.log("train_" + k, v.item())
+
+        return loss
+
+     def validation_step(self, batch, batch_idx):
+        pixel_values = batch["pixel_values"]
+        labels = [{k: v for k, v in t.items()} for t in batch["labels"]]
+        outputs = self.model(pixel_values=pixel_values, labels=labels)
+        loss = outputs.loss
+        loss_dict = outputs.loss_dict
+
+
+        self.log("validation_loss", loss)
+        for k,v in loss_dict.items():
+          self.log("validation_" + k, v.item())
+
+        pixel_values = batch["pixel_values"]
+
+
+        orig_target_sizes = torch.stack([target["orig_size"] for target in labels], dim=0)
+        results = self.feature_extractor.post_process(outputs, orig_target_sizes) # convert outputs of model to COCO api
+        res = {target['image_id'].item(): output for target, output in zip(labels, results)}
+        self.coco_evaluator.update(res)
+
+        loss = outputs.loss
+        loss_dict = outputs.loss_dict         
+        self.log("validation_loss", loss)
+        for k,v in loss_dict.items():
+            self.log("validation_" + k, v.item())
+        
+        return loss
+    
+     def validation_epoch_end(self, validation_step_outputs):
+        self.coco_evaluator.synchronize_between_processes()
+        self.coco_evaluator.accumulate()
+        self.coco_evaluator.summarize()
+
+        for iou_type, coco_eval in self.coco_evaluator.coco_eval.items():
+            # Pourquoi est-ce que ça ne marche plus ? Mystère
+            #for k, v in coco_eval.formatted.items():
+            #        self.log(k, v)
+            for ind, stat in enumerate(coco_eval.stats):
+                self.log(correspondance_stats[ind], stat)
+
+        self.coco_evaluator = CocoEvaluator(self.base_ds, self.iou_types) # initialize evaluator with ground truths
+
+
+     def test_step(self, batch, batch_idx):
+        pixel_values = batch["pixel_values"]
+        labels = [{k: v for k, v in t.items()} for t in batch["labels"]]
+        outputs = self.model(pixel_values=pixel_values, labels=labels)
+
+        pixel_values = batch["pixel_values"]
+
+
+        orig_target_sizes = torch.stack([target["orig_size"] for target in labels], dim=0)
+        results = self.feature_extractor.post_process(outputs, orig_target_sizes) # convert outputs of model to COCO api
+        res = {target['image_id'].item(): output for target, output in zip(labels, results)}
+        self.coco_evaluator.update(res)
+
+     def test_epoch_end(self, test_step_outputs):
+        self.coco_evaluator.synchronize_between_processes()
+        self.coco_evaluator.accumulate()
+        self.coco_evaluator.summarize()
+
+        for iou_type, coco_eval in self.coco_evaluator.coco_eval.items():
+            # Pourquoi est-ce que ça ne marche plus ? Mystère
+            #for k, v in coco_eval.formatted.items():
+            #        self.log(k, v)
+            for ind, stat in enumerate(coco_eval.stats):
+                self.log(correspondance_stats[ind], stat)
+
+        self.coco_evaluator = CocoEvaluator(self.base_ds, self.iou_types) # initialize evaluator with ground truths
+        
+
+     def configure_optimizers(self):
+        optimizer = torch.optim.AdamW(self.parameters(), lr=self.lr,
+                                  weight_decay=self.weight_decay)
+        
+        return optimizer
+
+class Detr(pl.LightningModule):
+
+    def __init__(self, lr, lr_backbone, weight_decay, val_dataset):
+        super().__init__()
+        # replace COCO classification head with custom head
+        self.model = DetrForObjectDetection.from_pretrained("facebook/detr-resnet-50", 
+                                                            num_labels=1,
+                                                            ignore_mismatched_sizes=True)
+        # see https://github.com/PyTorchLightning/pytorch-lightning/pull/1896
+        self.lr = lr
+        self.lr_backbone = lr_backbone
+        self.weight_decay = weight_decay
+        self.feature_extractor = DetrFeatureExtractor.from_pretrained("facebook/detr-resnet-50")
+        self.iou_types = ['bbox']
+        self.base_ds = get_coco_api_from_dataset(val_dataset) # this is actually just calling the coco attribute
+        self.coco_evaluator = CocoEvaluator(self.base_ds, self.iou_types) # initialize evaluator with ground truths
+
+    def forward(self, pixel_values, pixel_mask):
+       outputs = self.model(pixel_values=pixel_values, pixel_mask=pixel_mask)
+
+       return outputs
+     
+    def common_step(self, batch, batch_idx):
+       pixel_values = batch["pixel_values"]
+       pixel_mask = batch["pixel_mask"]
+       labels = [{k: v for k, v in t.items()} for t in batch["labels"]]
+
+       outputs = self.model(pixel_values=pixel_values, pixel_mask=pixel_mask, labels=labels)
+
+       loss = outputs.loss
+       loss_dict = outputs.loss_dict
+
+       return loss, loss_dict
+
+    def training_step(self, batch, batch_idx):
+        loss, loss_dict = self.common_step(batch, batch_idx)     
+        # logs metrics for each training_step,
+        # and the average across the epoch
+        self.log("training_loss", loss)
+        for k,v in loss_dict.items():
+          self.log("train_" + k, v.item())
+
+        return loss
+
+    def validation_step(self, batch, batch_idx):
+        pixel_values = batch["pixel_values"]
+        pixel_mask = batch["pixel_mask"]
+        labels = [{k: v for k, v in t.items()} for t in batch["labels"]]
+
+        outputs = self.model(pixel_values=pixel_values, pixel_mask=pixel_mask, labels=labels)
+        # forward pass
+
+        orig_target_sizes = torch.stack([target["orig_size"] for target in labels], dim=0)
+        results = self.feature_extractor.post_process(outputs, orig_target_sizes) # convert outputs of model to COCO api
+        res = {target['image_id'].item(): output for target, output in zip(labels, results)}
+        self.coco_evaluator.update(res)
+
+        loss = outputs.loss
+        loss_dict = outputs.loss_dict         
+        self.log("validation_loss", loss)
+        for k,v in loss_dict.items():
+            self.log("validation_" + k, v.item())
+        
+        return loss
+      
+    def validation_epoch_end(self, validation_step_outputs):
+        self.coco_evaluator.synchronize_between_processes()
+        self.coco_evaluator.accumulate()
+        self.coco_evaluator.summarize()
+        
+
+        for iou_type, coco_eval in self.coco_evaluator.coco_eval.items():
+            # Pourquoi est-ce que ça ne marche plus ? Mystère
+            #for k, v in coco_eval.formatted.items():
+            #        self.log(k, v)
+            for ind, stat in enumerate(coco_eval.stats):
+                self.log(correspondance_stats[ind], stat)
+
+        self.coco_evaluator = CocoEvaluator(self.base_ds, self.iou_types) # initialize evaluator with ground truths
+
+    def test_step(self, batch, batch_idx):
+        pixel_values = batch["pixel_values"]
+        labels = [{k: v for k, v in t.items()} for t in batch["labels"]]
+        outputs = self.model(pixel_values=pixel_values, labels=labels)
+
+        pixel_values = batch["pixel_values"]
+
+
+        orig_target_sizes = torch.stack([target["orig_size"] for target in labels], dim=0)
+        results = self.feature_extractor.post_process(outputs, orig_target_sizes) # convert outputs of model to COCO api
+        res = {target['image_id'].item(): output for target, output in zip(labels, results)}
+        self.coco_evaluator.update(res)
+
+    def test_epoch_end(self, test_step_outputs):
+        self.coco_evaluator.synchronize_between_processes()
+        self.coco_evaluator.accumulate()
+        self.coco_evaluator.summarize()
+
+        for iou_type, coco_eval in self.coco_evaluator.coco_eval.items():
+            # Pourquoi est-ce que ça ne marche plus ? Mystère
+            #for k, v in coco_eval.formatted.items():
+            #        self.log(k, v)
+            for ind, stat in enumerate(coco_eval.stats):
+                self.log(correspondance_stats[ind], stat)
+
+        self.coco_evaluator = CocoEvaluator(self.base_ds, self.iou_types) # initialize evaluator with ground truths
+        
+
+   
+    def configure_optimizers(self):
+        param_dicts = [
+              {"params": [p for n, p in self.named_parameters() if "backbone" not in n and p.requires_grad]},
+              {
+                  "params": [p for n, p in self.named_parameters() if "backbone" in n and p.requires_grad],
+                  "lr": self.lr_backbone,
+              },
+        ]
+        optimizer = torch.optim.AdamW(param_dicts, lr=self.lr,
+                                  weight_decay=self.weight_decay)
+        
+        return optimizer     
+
+class DeformableDetr(pl.LightningModule):
+
+    def __init__(self, lr, lr_backbone, weight_decay, val_dataset):
+        super().__init__()
+        # replace COCO classification head with custom head
+        self.model = DeformableDetrForObjectDetection.from_pretrained("SenseTime/deformable-detr", 
+                                                            num_labels=1,
+                                                            ignore_mismatched_sizes=True)
+        # see https://github.com/PyTorchLightning/pytorch-lightning/pull/1896
+        self.lr = lr
+        self.lr_backbone = lr_backbone
+        self.weight_decay = weight_decay
+        self.feature_extractor = DeformableDetrImageProcessor.from_pretrained("SenseTime/deformable-detr")
+        self.iou_types = ['bbox']
+        self.base_ds = get_coco_api_from_dataset(val_dataset) # this is actually just calling the coco attribute
+        self.coco_evaluator = CocoEvaluator(self.base_ds, self.iou_types) # initialize evaluator with ground truths
+
+    def forward(self, pixel_values, pixel_mask):
+       outputs = self.model(pixel_values=pixel_values, pixel_mask=pixel_mask)
+
+       return outputs
+     
+    def common_step(self, batch, batch_idx):
+       pixel_values = batch["pixel_values"]
+       pixel_mask = batch["pixel_mask"]
+       labels = [{k: v for k, v in t.items()} for t in batch["labels"]]
+
+       outputs = self.model(pixel_values=pixel_values, pixel_mask=pixel_mask, labels=labels)
+
+       loss = outputs.loss
+       loss_dict = outputs.loss_dict
+
+       return loss, loss_dict
+
+    def training_step(self, batch, batch_idx):
+        loss, loss_dict = self.common_step(batch, batch_idx)     
+        # logs metrics for each training_step,
+        # and the average across the epoch
+        self.log("training_loss", loss)
+        for k,v in loss_dict.items():
+          self.log("train_" + k, v.item())
+
+        return loss
+
+    def validation_step(self, batch, batch_idx):
+        
+        pixel_values = batch["pixel_values"]
+        pixel_mask = batch["pixel_mask"]
+        labels = [{k: v for k, v in t.items()} for t in batch["labels"]]
+
+        outputs = self.model(pixel_values=pixel_values, pixel_mask=pixel_mask, labels=labels)
+        # forward pass
+
+        orig_target_sizes = torch.stack([target["orig_size"] for target in labels], dim=0)
+        results = self.feature_extractor.post_process(outputs, orig_target_sizes) # convert outputs of model to COCO api
+        res = {target['image_id'].item(): output for target, output in zip(labels, results)}
+        self.coco_evaluator.update(res)
+
+        loss = outputs.loss
+        loss_dict = outputs.loss_dict
+        
+        loss, loss_dict = self.common_step(batch, batch_idx)         
+        self.log("validation_loss", loss)
+        for k,v in loss_dict.items():
+            self.log("validation_" + k, v.item())   
+        
+        return loss
+     
+    def validation_epoch_end(self, validation_step_outputs):
+        self.coco_evaluator.synchronize_between_processes()
+        self.coco_evaluator.accumulate()
+        self.coco_evaluator.summarize()
+
+        for iou_type, coco_eval in self.coco_evaluator.coco_eval.items():
+            # Pourquoi est-ce que ça ne marche plus ? Mystère
+            #for k, v in coco_eval.formatted.items():
+            #        self.log(k, v)
+            for ind, stat in enumerate(coco_eval.stats):
+                self.log(correspondance_stats[ind], stat)
+
+        self.coco_evaluator = CocoEvaluator(self.base_ds, self.iou_types) # initialize evaluator with ground truths
+    
+   
+    def configure_optimizers(self):
+        param_dicts = [
+              {"params": [p for n, p in self.named_parameters() if "backbone" not in n and p.requires_grad]},
+              {
+                  "params": [p for n, p in self.named_parameters() if "backbone" in n and p.requires_grad],
+                  "lr": self.lr_backbone,
+              },
+        ]
+        optimizer = torch.optim.AdamW(param_dicts, lr=self.lr,
+                                  weight_decay=self.weight_decay)
+        
+        return optimizer     
+
+
+
+
+class OldDeformdableDetr(pl.LightningModule):
+
+    def __init__(self, lr, lr_backbone, weight_decay, val_dataset):
+        super().__init__()
+        # replace COCO classification head with custom head
+        self.model = DeformableDetrForObjectDetection.from_pretrained("SenseTime/deformable-detr", 
+                                                            num_labels=1,
+                                                            ignore_mismatched_sizes=True)
+        # see https://github.com/PyTorchLightning/pytorch-lightning/pull/1896
+        self.lr = lr
+        self.lr_backbone = lr_backbone
+        self.weight_decay = weight_decay
+        self.iou_types = ['bbox']
+        self.base_ds = get_coco_api_from_dataset(val_dataset) # this is actually just calling the coco attribute
+        self.coco_evaluator = CocoEvaluator(self.base_ds, self.iou_types) # initialize evaluator with ground truths
+        #self.feature_extractor = AutoImageProcessor.from_pretrained("SenseTime/deformable-detr")
+        self.feature_extractor = DetrFeatureExtractor.from_pretrained("facebook/detr-resnet-50")
+
+
+
+    def forward(self, pixel_values, pixel_mask):
+       outputs = self.model(pixel_values=pixel_values, pixel_mask=pixel_mask)
+
+       return outputs
+     
+    def common_step(self, batch, batch_idx):
+       pixel_values = batch["pixel_values"]
+       pixel_mask = batch["pixel_mask"]
+       labels = [{k: v for k, v in t.items()} for t in batch["labels"]]
+
+       outputs = self.model(pixel_values=pixel_values, pixel_mask=pixel_mask, labels=labels) 
+
+       loss = outputs.loss
+       loss_dict = outputs.loss_dict
+
+       return loss, loss_dict
+
+    def training_step(self, batch, batch_idx):
+        loss, loss_dict = self.common_step(batch, batch_idx)     
+        # logs metrics for each training_step,
+        # and the average across the epoch
+        self.log("training_loss", loss)
+        for k,v in loss_dict.items():
+          self.log("train_" + k, v.item())
+
+        return loss
+
+    def validation_step(self, batch, batch_idx):
+        pixel_values = batch["pixel_values"]
+        pixel_mask = batch["pixel_mask"]
+        labels = [{k: v for k, v in t.items()} for t in batch["labels"]]
+
+        outputs = self.model(pixel_values=pixel_values, pixel_mask=pixel_mask, labels=labels) 
+        # forward pass
+
+        loss = outputs.loss
+        loss_dict = outputs.loss_dict
+        self.log("validation_loss", loss)
+        for k,v in loss_dict.items():
+            self.log("validation_" + k, v.item())
+
+
+        orig_target_sizes = torch.stack([target["orig_size"] for target in labels], dim=0)
+        #results = self.feature_extractor.post_process_object_detection(outputs, orig_target_sizes) # convert outputs of model to COCO api
+        results = self.feature_extractor.post_process_object_detection(outputs, target_sizes=orig_target_sizes)
+        res = {target['image_id'].item(): output for target, output in zip(labels, results)}
+        self.coco_evaluator.update(res)
+
+        
+        return loss
+      
+    def validation_epoch_end(self, validation_step_outputs):
+        self.coco_evaluator.synchronize_between_processes()
+        self.coco_evaluator.accumulate()
+        self.coco_evaluator.summarize()
+
+        for iou_type, coco_eval in self.coco_evaluator.coco_eval.items():
+            for k, v in coco_eval.formatted.items():
+                    self.log(k, v)
+
+        self.coco_evaluator = CocoEvaluator(self.base_ds, self.iou_types) # initialize evaluator with ground truths
+
+
+    def configure_optimizers(self):
+        param_dicts = [
+              {"params": [p for n, p in self.named_parameters() if "backbone" not in n and p.requires_grad]},
+              {
+                  "params": [p for n, p in self.named_parameters() if "backbone" in n and p.requires_grad],
+                  "lr": self.lr_backbone,
+              },
+        ]
+        optimizer = torch.optim.AdamW(param_dicts, lr=self.lr,
+                                  weight_decay=self.weight_decay)
+        
+        return optimizer     
