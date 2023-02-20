@@ -173,9 +173,9 @@ parser.add_argument(
         "detection. Default segmentation."
     ),
 )
-parser.add_argument("--classif-model")
-parser.add_argument("--classif-version")
-parser.add_argument("--flood-mask", action="store_true")
+parser.add_argument("--classif_model")
+parser.add_argument("--classif_version")
+parser.add_argument("--flood_mask", action="store_true")
 
 
 if __name__ == "__main__":
@@ -202,9 +202,7 @@ if __name__ == "__main__":
         lambda x: maskfolder / x.with_suffix(args.mask_extension).name
     )
 
-    split_df = pd.read_csv(
-        args.trainfolder / args.ihc_type / args.splitfile
-    ).sort_values("slide")
+    split_df = pd.read_csv(args.trainfolder / args.splitfile).sort_values("slide")
     split_df = split_df.loc[split_df["slide"].isin(patches_paths.map(lambda x: x.stem))]
     val_idxs = (split_df["split"] == args.test_fold).values
 

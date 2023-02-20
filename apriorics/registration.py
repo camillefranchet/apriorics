@@ -643,9 +643,6 @@ def full_registration(
         threads=threads,
     )
 
-    container.stop()
-    container.remove()
-
     print(f"[{pid}] Registration done...")
 
-    return True
+    return container

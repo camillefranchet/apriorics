@@ -264,30 +264,29 @@ def get_mask_CD3CD20(
     ihc_DAB = rgb2hed(ihc)[:, :, 2]
     ihc_s = rgb2hsv(ihc)[:, :, 1]
 
-    mask_he1 = (he_H > 0.06) & (he_H < 0.14) & (he_hue > 0.67)
+    mask_he1 = (he_H > 0.05) & (he_H < 0.14) & (he_hue > 0.67)
     mask_he2 = get_mask_ink(he)
 
-    mask_he = binary_closing(
-        remove_small_objects(
-            remove_small_holes(mask_he1 & ~mask_he2, area_threshold=300),
-            min_size=100,
+    mask_he = remove_small_objects(
+        remove_small_holes(
+            binary_closing(mask_he1 & ~mask_he2, footprint=disk(2)), area_threshold=300
         ),
-        footprint=disk(5),
+        min_size=100,
     )
 
-    mask_ihc = binary_closing(
-        remove_small_objects(
-            remove_small_holes((ihc_DAB > 0.04) & (ihc_s > 0.1), area_threshold=300),
-            min_size=100,
+    mask_ihc = remove_small_objects(
+        remove_small_holes(
+            binary_closing((ihc_DAB > 0.01) & (ihc_s > 0.01), footprint=disk(2)),
+            area_threshold=300,
         ),
-        footprint=disk(5),
+        min_size=100,
     )
 
-    mask_he_DAB = binary_closing(
-        remove_small_objects(
-            remove_small_holes(he_DAB > 0.04, area_threshold=300), min_size=100
+    mask_he_DAB = remove_small_objects(
+        remove_small_holes(
+            binary_closing(he_DAB > 0.03, footprint=disk(2)), area_threshold=300
         ),
-        footprint=disk(5),
+        min_size=100,
     )
 
     mask = remove_small_objects(mask_he & mask_ihc & ~mask_he_DAB, min_size=100)
