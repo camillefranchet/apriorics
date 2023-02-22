@@ -10,7 +10,6 @@ from torch import nn
 from transformers import AutoFeatureExtractor, AutoModelForObjectDetection, DetrFeatureExtractor, DetrForObjectDetection, DeformableDetrForObjectDetection
 import pytorch_lightning as pl
 from torchmetrics.detection.mean_ap import MeanAveragePrecision
-from datasets import get_coco_api_from_dataset
 
 from apriorics.model_components.axialnet import (
     AxialBlock,
@@ -27,8 +26,8 @@ from apriorics.model_components.decoder_blocks import DecoderBlock, PixelShuffle
 from apriorics.model_components.hooks import Hooks
 from apriorics.model_components.normalization import bc_norm, group_norm
 from apriorics.model_components.utils import get_sizes
-from datasets.coco_eval import CocoEvaluator
-from datasets import get_coco_api_from_dataset
+from scripts.train.datasets.coco_eval import CocoEvaluator
+from scripts.train.datasets import get_coco_api_from_dataset
 
 class CBR(nn.Module):
     """"""

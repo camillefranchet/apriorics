@@ -36,26 +36,26 @@ def output_yolo(path, dataset, split):
         slide_idx = dataset.slide_id[idx]
         image = im.fromarray(patch[0])
         print("{}-{}".format(patch_nb, slide_idx))
-        for box in patch[1]["boxes"]:
-            x0=box[0]
-            y0=box[1]
-            x1=box[2]
-            y1=box[3]
-            w= x1-x0
-            h= y1-y0
-            cx = (x0+x1)/2
-            cy=(y0+y1)/2
-            label = "{label} {cx} {cy} {w} {h}".format(label=0, cx=cx/256, cy=cy/256, w=w/256, h=h/256)
-            with open(path / "/labels/{}/{}-{}.txt".format(split ,patch_nb, slide_idx), 'w') as f:
+        with open("/data/elliot/yolo_dataset_emptyslides/labels/{}/{}-{}.txt".format(split ,patch_nb, slide_idx), 'w') as f:
+            for box in patch[1]["boxes"]:
+                x0=box[0]
+                y0=box[1]
+                x1=box[2]
+                y1=box[3]
+                w= x1-x0
+                h= y1-y0
+                cx = (x0+x1)/2
+                cy=(y0+y1)/2
+                label = "{label} {cx} {cy} {w} {h}".format(label=0, cx=cx/256, cy=cy/256, w=w/256, h=h/256)
                 f.write(label)
-        image.save(path / "/images/{}/{}-{}.jpg".format(split, patch_nb, slide_idx))
+        image.save("/data/elliot/yolo_dataset_emptyslides/images/{}/{}-{}.jpg".format(split, patch_nb, slide_idx))
 
 
-path = Path("/data/elliot/yolo_dataset_nopadding/")
+path = Path("/data/elliot/yolo_dataset_emptyslides/")
 
-print("train")
-train_ds = dataset_opening('train')
-output_yolo(path, train_ds, 'train')
+#print("train")
+#train_ds = dataset_opening('train')
+#output_yolo(path, train_ds, 'train')
 
 
 print("valid")

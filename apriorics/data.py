@@ -14,15 +14,6 @@ from scipy.sparse import load_npz
 from torch.utils.data import Dataset, RandomSampler, Sampler
 from tqdm import tqdm
 
-import json
-import glob
-from shapely.geometry import shape, GeometryCollection
-from shapely.geometry.polygon import Polygon
-from shapely.ops import clip_by_rect
-
-from imantics import Polygons, Mask
-
-
 from apriorics.masks import mask_to_bbox
 from apriorics.transforms import StainAugmentor
 
@@ -318,6 +309,7 @@ class SparseDetectionDataset(Dataset):
                 "image"
             ]
 
+        """
         retransform = True
         count = 0
         while retransform and count < 10:
@@ -326,8 +318,14 @@ class SparseDetectionDataset(Dataset):
             count += 1
         if retransform:
             return
-
-        bboxes, masks = mask_to_bbox(transformed["mask"], pad=1, min_size=0)
+        """
+        transformed = self.transforms(image=slide_region, mask=mask_region)
+        if transformed["mask"].sum() > 0:
+            bboxes, masks = mask_to_bbox(transformed["mask"], pad=1, min_size=0)
+        else:
+            bboxes = np.array([])
+            masks = mask
+    
         target = {
             "boxes": bboxes,
             "masks": masks,

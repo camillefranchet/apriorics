@@ -46,3 +46,64 @@ You can also install this library as an editable pip package, which will install
 ```bash
 pip install -e .
 ```
+
+---
+# Specific documentation
+
+## Transformers & Coco
+
+### Data
+
+In the context of the [Transformers](https://huggingface.co/docs/transformers/index) library, it was necessary to transform the data in the [COCO format](https://cocodataset.org/#format-data). First, please install the hugginface's transformer library following the official documentation. Then, to transform our dataset (for object detection) in this format:
+
+```
+python ./scripts/utils/tococodataset.py
+```
+
+### Training
+
+Then, we can use the data created to train the transformers models using `/scripts/train/train_transformers.py`). Three models are supported : `detr`, `deformdabledetr` and `yolos`.
+
+An example of the usage of this script :
+
+```
+python train_transformers.py -m detr
+```
+
+Transformer models are underperforming on this dataset, compared to Yolo.
+
+## Yolo
+
+### Data
+
+We used [Yolov5](https://github.com/ultralytics/yolov5) and [Yolov8](https://github.com/ultralytics/ultralytics) is also usable. Please don't forget to clone the repository and install the dependencies as showed on the documentation of Yolo. Then, the first step is to transform the data in the Yolo format. To do so:
+
+```
+python ./scripts/utils/toyolo.py
+```
+
+You must also create a `yaml` file at the root of the yolo folder, following the format provided [here](https://github.com/ultralytics/yolov5/wiki/Train-Custom-Data#11-create-datasetyaml). In our case, we only have 1 class : `Mitosis`.
+
+### Training
+
+Once we obtained the data, the training script can be used. An example of is the following :
+
+```
+python train.py --img 256 --batch 16 --epochs 3 --data yolo_format.yaml --weights yolov5s.pt
+```
+
+For more details about the parameters, please refer to the [official documentation](https://github.com/ultralytics/yolov5/wiki/Train-Custom-Data)
+
+### Inference
+
+If you want to evaluate the model and obtain evaluation measures, use the following script. Different models trained on the data are available at `/data/elliot/runs/train/`. The model with the best result is in `exp12_62 epochs` : 
+
+```
+python val.py --weights ./runs/train/exp12_62epochs/weights/best.pt --data yolo_dataset.yaml --img 256
+```
+
+If you want to do the inference on unlabeled data, use :
+
+```
+python detect.py --weights ./runs/train/exp12_62epochs/weights/best.pt --source /path/to/data
+```

@@ -81,8 +81,12 @@ train_idxs = (split_df["split"] != "test").values
 val_idxs = ~train_idxs
 
 
-train_idxs = train_idxs[0:3]
-val_idxs = val_idxs[0:3]
+train_idxs = train_idxs[-2:-1]
+val_idxs = val_idxs[0:6]
+
+print(val_idxs)
+
+
 
 if args.stain_matrices_folder is not None:
     stain_matrices_paths = mask_paths.map(

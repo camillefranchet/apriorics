@@ -103,12 +103,16 @@ def output_coco(path, dataset, s):
         json.dump(coco_output, outfile)
 
 
+# A function containing all the parameters to open the dataset
 train_ds = dataset_opening('train')
 
 val_ds = dataset_opening('val')
 
 
 sets = ['train', 'val']
+
+# Where to store the data
+# Don't forget to create these folders
 data_path = Path('/data/elliot/coco_format_test_newscript/')
 train_path = data_path / 'train'
 val_path = data_path / 'val'
