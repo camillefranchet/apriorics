@@ -117,6 +117,9 @@ data_path = Path('/data/elliot/coco_format_test_newscript/')
 train_path = data_path / 'train'
 val_path = data_path / 'val'
 
+assert(os.path.exists(str(train_path)))
+assert(os.path.exists(str(val_path)))
+
 dic_path = dict()
 dic_dataset = dict()
 

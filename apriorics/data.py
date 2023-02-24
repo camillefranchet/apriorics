@@ -309,6 +309,7 @@ class SparseDetectionDataset(Dataset):
                 "image"
             ]
 
+        # Comment this section until next comment to add empty patchs to the list
         """
         retransform = True
         count = 0
@@ -318,14 +319,21 @@ class SparseDetectionDataset(Dataset):
             count += 1
         if retransform:
             return
+        
+        bboxes, masks = mask_to_bbox(transformed["mask"], pad=1, min_size=0)
         """
+        # End of comment to add empty patches 
+        
+        # Uncomment this section if using empty patches
+        
         transformed = self.transforms(image=slide_region, mask=mask_region)
         if transformed["mask"].sum() > 0:
             bboxes, masks = mask_to_bbox(transformed["mask"], pad=1, min_size=0)
         else:
             bboxes = np.array([])
             masks = mask
-    
+        
+        
         target = {
             "boxes": bboxes,
             "masks": masks,

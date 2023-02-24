@@ -36,7 +36,7 @@ def output_yolo(path, dataset, split):
         slide_idx = dataset.slide_id[idx]
         image = im.fromarray(patch[0])
         print("{}-{}".format(patch_nb, slide_idx))
-        with open("/data/elliot/yolo_dataset_emptyslides/labels/{}/{}-{}.txt".format(split ,patch_nb, slide_idx), 'w') as f:
+        with open(str(path) + "labels/{}/{}-{}.txt".format(split ,patch_nb, slide_idx), 'w') as f:
             for box in patch[1]["boxes"]:
                 x0=box[0]
                 y0=box[1]
@@ -48,16 +48,20 @@ def output_yolo(path, dataset, split):
                 cy=(y0+y1)/2
                 label = "{label} {cx} {cy} {w} {h}".format(label=0, cx=cx/256, cy=cy/256, w=w/256, h=h/256)
                 f.write(label)
-        image.save("/data/elliot/yolo_dataset_emptyslides/images/{}/{}-{}.jpg".format(split, patch_nb, slide_idx))
+        image.save(str(path) + "images/{}/{}-{}.jpg".format(split, patch_nb, slide_idx))
 
 
 path = Path("/data/elliot/yolo_dataset_emptyslides/")
 
-#print("train")
-#train_ds = dataset_opening('train')
-#output_yolo(path, train_ds, 'train')
+print("train")
+assert(os.path.exists(str(path) + "labels/train"))
+assert(os.path.exists(str(path) + "images/train"))
+train_ds = dataset_opening('train')
+output_yolo(path, train_ds, 'train')
 
 
-print("valid")
-val_ds = dataset_opening('val')
-output_yolo(path, val_ds, 'valid')
+#print("valid")
+assert(os.path.exists(str(path) + "labels/valid"))
+assert(os.path.exists(str(path) + "images/valid"))
+#val_ds = dataset_opening('val')
+#output_yolo(path, val_ds, 'valid')

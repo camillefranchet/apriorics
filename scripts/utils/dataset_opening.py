@@ -81,8 +81,8 @@ train_idxs = (split_df["split"] != "test").values
 val_idxs = ~train_idxs
 
 
-train_idxs = train_idxs[-2:-1]
-val_idxs = val_idxs[0:6]
+train_idxs = train_idxs[0:100]
+#val_idxs = val_idxs[0:6]
 
 print(val_idxs)
 
