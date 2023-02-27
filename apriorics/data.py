@@ -245,6 +245,7 @@ class SparseDetectionDataset(Dataset):
         slide_backend: str = "cucim",
         step: int = 1,
         min_size: int = 10,
+        empty_patches: bool = False,
         **kwargs
     ):
         super().__init__()
@@ -255,6 +256,7 @@ class SparseDetectionDataset(Dataset):
         self.slide_id = []
         self.n_pos = []
         self.labels = []
+        self.empty_patches = empty_patches
 
         for slide_idx, (patches_path, slide_path, mask_path) in enumerate(
             zip(patches_paths, slide_paths, mask_paths)
@@ -308,31 +310,26 @@ class SparseDetectionDataset(Dataset):
             slide_region = self.stain_augmentor(image=(slide_region, stain_matrix))[
                 "image"
             ]
-
-        # Comment this section until next comment to add empty patchs to the list
-        """
-        retransform = True
-        count = 0
-        while retransform and count < 10:
+        
+        # Using empty patches as well as patches containing mitosis
+        if self.empty_patches : 
             transformed = self.transforms(image=slide_region, mask=mask_region)
-            retransform = transformed["mask"].sum() < self.min_size
-            count += 1
-        if retransform:
-            return
+            if transformed["mask"].sum() > 0:
+                bboxes, masks = mask_to_bbox(transformed["mask"], pad=1, min_size=0)
+            else:
+                bboxes = np.array([])
+                masks = mask
         
-        bboxes, masks = mask_to_bbox(transformed["mask"], pad=1, min_size=0)
-        """
-        # End of comment to add empty patches 
-        
-        # Uncomment this section if using empty patches
-        
-        transformed = self.transforms(image=slide_region, mask=mask_region)
-        if transformed["mask"].sum() > 0:
+        if not self.empty_patches: 
+            retransform = True
+            count = 0
+            while retransform and count < 10:
+                transformed = self.transforms(image=slide_region, mask=mask_region)
+                retransform = transformed["mask"].sum() < self.min_size
+                count += 1
+            if retransform:
+                return
             bboxes, masks = mask_to_bbox(transformed["mask"], pad=1, min_size=0)
-        else:
-            bboxes = np.array([])
-            masks = mask
-        
         
         target = {
             "boxes": bboxes,

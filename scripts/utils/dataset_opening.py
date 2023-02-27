@@ -122,6 +122,7 @@ def dataset_opening(split):
                 slide_paths[train_idxs],
                 mask_paths[train_idxs],
                 patches_paths[train_idxs],
+                empty_patches=True
                 #stain_matrices_paths,
                 #stain_augmentor=StainAugmentor() if args.augment_stain else None,
                 #transforms=transforms,
@@ -131,6 +132,7 @@ def dataset_opening(split):
                 slide_paths[val_idxs],
                 mask_paths[val_idxs],
                 patches_paths[val_idxs],
+                empty_patches=True
                 #stain_matrices_paths,
                 #stain_augmentor=StainAugmentor() if args.augment_stain else None,
                 #transforms=transforms,
