@@ -57,10 +57,11 @@ train:
   model: unet/resnet50
   loss: bce
   fold: 0
-  p_pos: 0.7
+  p_pos: 0.8
   data_step: 1
   data_type: segmentation
   augment_stain: true
+  log_offline: true
 
 evaluate:
   area_threshold: 500
