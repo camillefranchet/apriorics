@@ -226,7 +226,6 @@ if __name__ == "__main__":
     else:
         crops = [(0, 0, args.base_size, args.base_size)]
 
-    all_metrics = {}
     for slide_path, patches_path in zip(slide_paths, patches_paths):
         print(slide_path.stem)
         polygons = []
@@ -245,7 +244,7 @@ if __name__ == "__main__":
                 pin_memory=True,
             )
 
-            for batch_idx, x in tqdm(enumerate(dl), total=len(dl)):
+            for batch_idx, x in (pbar := tqdm(enumerate(dl), total=len(dl))):
                 x = x.to(device)
                 y_hat = torch.sigmoid(model(x))
                 if clf is not None:
