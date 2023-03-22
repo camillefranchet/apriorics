@@ -239,6 +239,12 @@ parser.add_argument(
     "--grad_clip", type=float, help="Value to use for gradient clipping. Optional."
 )
 
+parser.add_argument(
+    "--log_offline",
+    action="store_true",
+    help="Specify to use comet offline logging. Optional.",
+)
+
 if __name__ == "__main__":
     __spec__ = None
     args = parser.parse_known_args()[0]
@@ -346,7 +352,9 @@ if __name__ == "__main__":
         wd=args.wd,
         scheduler_func=scheduler_func,
         metrics=metrics,
-        stain_augmentor=StainAugmentor() if args.augment_stain else None,
+        stain_augmentor=StainAugmentor(alpha_stain_range=0.2, beta_stain_range=0.1)
+        if args.augment_stain
+        else None,
         dl_lengths=(len(train_dl), len(val_dl)),
     )
 
@@ -360,6 +368,7 @@ if __name__ == "__main__":
         project_name="apriorics",
         auto_metric_logging=False,
         experiment_name=os.getenv("DVC_EXP_NAME"),
+        offline=args.log_offline,
     )
 
     if not args.horovod or hvd.rank() == 0:
