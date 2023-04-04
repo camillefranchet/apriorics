@@ -8,14 +8,7 @@ import pandas as pd
 import pytorch_lightning as pl
 import torch
 import yaml
-from albumentations import (
-    CenterCrop,
-    Flip,
-    RandomBrightnessContrast,
-    RandomCrop,
-    RandomRotate90,
-    Transpose,
-)
+from albumentations import CenterCrop
 from metrics_config import METRICS
 from pathaia.util.paths import get_files
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -23,6 +16,7 @@ from pytorch_lightning.loggers import CometLogger
 from pytorch_lightning.utilities.seed import seed_everything
 from timm import create_model
 from torch.utils.data import DataLoader
+from transforms_config import get_transforms
 
 from apriorics.data import (
     BalancedRandomSampler,
@@ -238,11 +232,21 @@ parser.add_argument(
 parser.add_argument(
     "--grad_clip", type=float, help="Value to use for gradient clipping. Optional."
 )
-
 parser.add_argument(
     "--log_offline",
     action="store_true",
     help="Specify to use comet offline logging. Optional.",
+)
+parser.add_argument(
+    "--p_augment",
+    type=float,
+    default=0.5,
+    help="Probability to use augmentHE on each image. Default 0.5.",
+)
+parser.add_argument(
+    "--transforms",
+    default="base",
+    help="Name of the transform set from transforms_config.py. Default base.",
 )
 
 if __name__ == "__main__":
@@ -274,14 +278,7 @@ if __name__ == "__main__":
     val_idxs = (split_df["split"] == args.fold).values
     train_idxs = ~val_idxs
 
-    transforms = [
-        RandomCrop(args.patch_size, args.patch_size),
-        Flip(),
-        Transpose(),
-        RandomRotate90(),
-        RandomBrightnessContrast(),
-        ToTensor(),
-    ]
+    transforms = get_transforms(args.transforms)
 
     dataset_cls = get_dataset_cls(args.data_type)
     train_ds = dataset_cls(
@@ -352,7 +349,9 @@ if __name__ == "__main__":
         wd=args.wd,
         scheduler_func=scheduler_func,
         metrics=metrics,
-        stain_augmentor=StainAugmentor(alpha_stain_range=0.2, beta_stain_range=0.1)
+        stain_augmentor=StainAugmentor(
+            alpha_stain_range=0.2, beta_stain_range=0.1, p=args.p_augment
+        )
         if args.augment_stain
         else None,
         dl_lengths=(len(train_dl), len(val_dl)),
@@ -411,6 +410,7 @@ if __name__ == "__main__":
             # ckpt_path=ckpt_path,
         )
     finally:
+        print(f"here {logger.version}")
         if args.hash_file is not None:
             with open(args.hash_file, "w") as f:
                 yaml.dump({args.fold: logger.version}, f)
