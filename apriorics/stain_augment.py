@@ -1,3 +1,5 @@
+import random
+
 import torch
 import torch.nn as nn
 
@@ -444,6 +446,7 @@ class StainAugmentor(nn.Module):
         alpha_stain_range: float = 0.3,
         beta_stain_range: float = 0.2,
         he_ratio: float = 0.2,
+        p: float = 0.5,
     ):
         super(StainAugmentor, self).__init__()
         self.alpha_range = alpha_range
@@ -451,6 +454,7 @@ class StainAugmentor(nn.Module):
         self.alpha_stain_range = alpha_stain_range
         self.beta_stain_range = beta_stain_range
         self.he_ratio = he_ratio
+        self.p = p
 
     def get_params(self, n, dtype=None, device=None):
         return {
@@ -501,4 +505,7 @@ class StainAugmentor(nn.Module):
         stain_matrix = torch.clip(stain_matrix, 0, 1)
         HE = torch.where(HE > 0.2, (HE * alpha[..., None] + beta[..., None]), HE)
         out = _normalized_from_concentrations(HE, stain_matrix, 240, x.shape, 0)
+        for i in range(x.shape[0]):
+            if random.random() > self.p:
+                out[i] = x[i]
         return out.to(x.dtype) / 255
