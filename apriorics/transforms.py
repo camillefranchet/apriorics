@@ -1,13 +1,12 @@
 import random
-from numbers import Number
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import spams
 import torch
 from albumentations import CropNonEmptyMaskIfExists
 from albumentations.core.transforms_interface import DualTransform, ImageOnlyTransform
-from nptyping import NDArray
+from nptyping import Float, NDArray, Number, Shape
 from pathaia.util.basic import ifnone
 from pathaia.util.types import NDByteImage, NDGrayImage, NDImage
 from skimage.morphology import label, remove_small_holes, remove_small_objects
@@ -90,8 +89,10 @@ class ToTensor(DualTransform):
 
 
 def get_concentrations(
-    img: NDByteImage, stain_matrix: NDArray[(2, 3), float], regularizer: float = 0.01
-) -> NDArray[(Any, Any, 2), float]:
+    img: NDByteImage,
+    stain_matrix: NDArray[Shape["2, 3"], Float],
+    regularizer: float = 0.01,
+) -> NDArray[Shape["*, *, 2"], Float]:
     OD = convert_RGB_to_OD(img).reshape((-1, 3))
     HE = spams.lasso(
         X=OD.T,
@@ -160,10 +161,17 @@ class StainAugmentor(ImageOnlyTransform):
 
     def initialize(
         self,
-        alpha: Optional[NDArray[(Any, ...), float]],
-        beta: Optional[NDArray[(Any, ...), float]],
+        alpha: Optional[
+            Union[NDArray[Shape["2"], Float], NDArray[Shape["2, 3"], Float]]
+        ],
+        beta: Optional[
+            Union[NDArray[Shape["2"], Float], NDArray[Shape["2, 3"], Float]]
+        ],
         shape: Tuple[int, ...] = 2,
-    ) -> Tuple[NDArray[(Any, ...)], NDArray[(Any, ...)]]:
+    ) -> Tuple[
+        Union[NDArray[Shape["2"], Float], NDArray[Shape["2, 3"], Float]],
+        Union[NDArray[Shape["2"], Float], NDArray[Shape["2, 3"], Float]],
+    ]:
         alpha = ifnone(np.asarray(alpha), np.ones(shape))
         beta = ifnone(np.asarray(beta), np.zeros(shape))
         return alpha, beta
@@ -171,14 +179,14 @@ class StainAugmentor(ImageOnlyTransform):
     def apply(
         self,
         image_and_stain: Tuple[
-            NDArray[(Any, Any, 3), Number], Optional[NDArray[(2, 3), float]]
+            NDArray[Shape["*, *, 3"], Number], Optional[NDArray[Shape["2, 3"], Float]]
         ],
-        alpha: Optional[NDArray[(2,), float]] = None,
-        beta: Optional[NDArray[(2,), float]] = None,
-        alpha_stain: Optional[NDArray[(2, 3), float]] = None,
-        beta_stain: Optional[NDArray[(2, 3), float]] = None,
+        alpha: Optional[NDArray[Shape["2"], Float]] = None,
+        beta: Optional[NDArray[Shape["2"], Float]] = None,
+        alpha_stain: Optional[NDArray[Shape["2, 3"], Float]] = None,
+        beta_stain: Optional[NDArray[Shape["2, 3"], Float]] = None,
         **params
-    ) -> NDArray[(Any, Any, 3), Number]:
+    ) -> NDArray[Shape["*, *, 3"], Number]:
         image, stain_matrix = image_and_stain
         image = to_tensor(image).to(self.device) * 255
         alpha, beta = self.initialize(alpha, beta, shape=2)
