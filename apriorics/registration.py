@@ -1,12 +1,11 @@
-from numbers import Number
 from os import PathLike
 from pathlib import Path
-from typing import Any, Callable, List, Sequence, Tuple, Union
+from typing import Callable, List, Sequence, Tuple, Union
 
 import cv2
 import docker
 import numpy as np
-from nptyping import NDArray
+from nptyping import Float, Int, NDArray, Number, Shape
 from pathaia.util.types import (
     Coord,
     NDBoolMask,
@@ -59,7 +58,9 @@ def get_dot_mask(
     return mask
 
 
-def get_angle(v1: NDArray[(2,), Number], v2: NDArray[(2,), Number]) -> float:
+def get_angle(
+    v1: NDArray[Shape["2"], Number], v2: NDArray[Shape["2"], Number]
+) -> float:
     r"""
     Get angle between two 2D vectors.
 
@@ -123,8 +124,8 @@ def get_vertices(mask: NDBoolMask, centroid: Tuple[int, int]) -> List[Tuple[int,
 
 
 def get_rotation(
-    fixed_vert: NDArray[(Any, 2), int], moving_vert: NDArray[(Any, 2), int]
-) -> NDArray[(3, 3), float]:
+    fixed_vert: NDArray[Shape["*, 2"], Int], moving_vert: NDArray[Shape["*, 2"], Int]
+) -> NDArray[Shape["3, 3"], Float]:
     r"""
     Given 2 lists of vertices coordinates sorted in trigonometric order, get the
     rotation transform that aligns them.
@@ -150,8 +151,8 @@ def get_rotation(
 
 
 def get_scale(
-    fixed_vert: NDArray[(Any, 2), int], moving_vert: NDArray[(Any, 2), int]
-) -> NDArray[(3, 3), float]:
+    fixed_vert: NDArray[Shape["*, 2"], Int], moving_vert: NDArray[Shape["*, 2"], Int]
+) -> NDArray[Shape["3, 3"], Float]:
     r"""
     Given 2 lists of vertices coordinates sorted in trigonometric order, get the
     scale transform that aligns them.
@@ -182,8 +183,8 @@ def get_scale(
 
 
 def get_translation(
-    fixed_vert: NDArray[(Any, 2), int], moving_vert: NDArray[(Any, 2), int]
-) -> NDArray[(3, 3), float]:
+    fixed_vert: NDArray[Shape["*, 2"], Int], moving_vert: NDArray[Shape["*, 2"], Int]
+) -> NDArray[Shape["3, 3"], Float]:
     r"""
     Given 2 lists of vertices coordinates sorted in trigonometric order, get the
     translation transform that aligns them.
@@ -250,7 +251,11 @@ def get_affine_transform(
     moving: NDBoolMask,
     centroid_fixed: Tuple[int, int],
     centroid_moving: Tuple[int, int],
-) -> Tuple[NDArray[(3, 3), float], NDArray[(3, 3), float], NDArray[(3, 3), float]]:
+) -> Tuple[
+    NDArray[Shape["3, 3"], Float],
+    NDArray[Shape["3, 3"], Float],
+    NDArray[Shape["3, 3"], Float],
+]:
     r"""
     Given 2 dot masks, get the affine transform (as rotation, scale and translation) to
     apply to the moving one to align it with the fixed one.
