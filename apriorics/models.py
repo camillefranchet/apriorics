@@ -1,10 +1,10 @@
-from typing import Any, Optional, Tuple
+from typing import Optional, Tuple
 
 import numpy as np
 import timm
 import torch
 import torch.nn.functional as F
-from nptyping import NDArray
+from nptyping import Int, NDArray, Shape
 from torch import nn
 
 from apriorics.model_components.axialnet import (
@@ -191,7 +191,7 @@ class DynamicUnet(nn.Module):
 
     def _register_output_hooks(
         self, input_shape: Tuple[int, int, int] = (3, 224, 224)
-    ) -> Tuple[NDArray[(Any, Any), int], NDArray[(Any,), int]]:
+    ) -> Tuple[NDArray[Shape["*, *"], Int], NDArray[Shape["*"], Int]]:
         sizes, modules = get_sizes(self.encoder, input_shape=input_shape)
         mods = []
         idxs = np.where(sizes[:-1, -1] != sizes[1:, -1])[0]
