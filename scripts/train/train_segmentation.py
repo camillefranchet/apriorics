@@ -275,8 +275,9 @@ if __name__ == "__main__":
 
     split_df = pd.read_csv(args.trainfolder / args.splitfile).sort_values("slide")
     split_df = split_df.loc[split_df["slide"].isin(patches_paths.map(lambda x: x.stem))]
+    test_idxs = (split_df["split"] == "test").values
     val_idxs = (split_df["split"] == args.fold).values
-    train_idxs = ~val_idxs
+    train_idxs = ~(val_idxs | test_idxs)
 
     transforms = get_transforms(args.transforms, args.patch_size)
 
