@@ -1,12 +1,11 @@
 import json
-from numbers import Number
 from os import PathLike
-from typing import Any, Optional
+from typing import Optional
 
 import geopandas
 import numpy as np
 from albumentations.augmentations.crops.functional import get_center_crop_coords
-from nptyping import NDArray
+from nptyping import Int, NDArray, Number, Shape
 from pathaia.util.types import NDBoolMask
 from rasterio import features
 from shapely.affinity import affine_transform, translate
@@ -15,8 +14,8 @@ from shapely.ops import clip_by_rect
 
 
 def get_reduced_coords(
-    coords: NDArray[(Any, 2), Number], angle_th: float, distance_th: float
-) -> NDArray[(Any, 2), int]:
+    coords: NDArray[Shape["*, 2"], Number], angle_th: float, distance_th: float
+) -> NDArray[Shape["*, 2"], Int]:
     r"""
     Given polygon vertices coordinates, deletes those that are too close or that form
     a too small angle.

@@ -368,6 +368,7 @@ if __name__ == "__main__":
         auto_metric_logging=False,
         experiment_name=os.getenv("DVC_EXP_NAME"),
         offline=args.log_offline,
+        auto_output_logging=False,
     )
 
     if not args.horovod or hvd.rank() == 0:
