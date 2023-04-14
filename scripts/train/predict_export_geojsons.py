@@ -263,7 +263,7 @@ if __name__ == "__main__":
     dataset_cls = get_dataset_cls(args.data_type)
 
     if args.patch_size < args.base_size:
-        interval = int(0.3 * args.patch_size)
+        interval = int(0.9 * args.patch_size)
         max_coord = args.base_size - args.patch_size
         crops = []
         for x in range(0, max_coord + 1, interval):
