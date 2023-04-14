@@ -278,7 +278,7 @@ if __name__ == "__main__":
     val_idxs = (split_df["split"] == args.fold).values
     train_idxs = ~val_idxs
 
-    transforms = get_transforms(args.transforms)
+    transforms = get_transforms(args.transforms, args.patch_size)
 
     dataset_cls = get_dataset_cls(args.data_type)
     train_ds = dataset_cls(
@@ -381,6 +381,7 @@ if __name__ == "__main__":
         filename="{epoch}-{val_loss:.3f}",
     )
 
+    exp = logger.experiment
     trainer = pl.Trainer(
         gpus=1 if args.horovod else [args.gpu],
         min_epochs=args.epochs,
@@ -409,7 +410,6 @@ if __name__ == "__main__":
             # ckpt_path=ckpt_path,
         )
     finally:
-        print(f"here {logger.version}")
         if args.hash_file is not None:
             with open(args.hash_file, "w") as f:
-                yaml.dump({args.fold: logger.version}, f)
+                yaml.dump({args.fold: exp.get_key()}, f)
