@@ -477,21 +477,29 @@ class BalancedRandomSampler(RandomSampler):
             if len(avail) == 1:
                 cl_patches = avail[0]
                 n_patches = len(cl_patches)
-                max_draw = int(2**23)
+                max_draw = int(2 ** 23)
+                n_rest = n_patches % max_draw
                 n_draws = int(np.ceil(n_patches / max_draw))
                 idx = []
-                to_draw = int(np.ceil((num_samples - k) / n_draws))
-                for i in range(n_draws):
-                    if (n_draws > 1) and (i == n_draws - 1):
-                        to_draw = (num_samples - k) % to_draw
-                    idx.append(
-                        torch.multinomial(
-                            torch.ones(min(n_patches, int(max_draw))),
-                            to_draw,
-                            generator=self.generator,
-                        )
-                        + i * max_draw
-                    )
+                count = 0
+                to_draw = int(num_samples - k)
+                for i in range(n_draws - 1):
+                    p = torch.full((min(n_patches, max_draw),), to_draw / n_patches)
+                    draw = torch.nonzero(torch.bernoulli(p)).squeeze(1)
+                    count += len(draw)
+                    idx.append(draw + i * max_draw)
+                    if i == n_draws - 2:
+                        to_draw -= count
+                        if to_draw > n_rest:
+                            p = torch.ones(max_draw)
+                            p[draw] = 0
+                            draw = torch.multinomial(p, to_draw - n_rest)
+                            idx.append(draw + i * max_draw)
+                            to_draw = n_rest
+                idx.append(
+                    torch.multinomial(torch.ones(n_rest), to_draw)
+                    + (n_draws - 1) * max_draw
+                )
                 idx = torch.cat(idx)
                 idxs.extend([cl_patches[i] for i in idx])
                 break
