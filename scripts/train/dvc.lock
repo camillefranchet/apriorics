@@ -41,14 +41,14 @@ stages:
       md5: bc15256060dfdce2f06a9b524b162b86
       size: 15819
   train:
-    cmd: python -u train_segmentation.py --hash_file .model_hash.yaml --data_path
-      /data/anapath/AprioricsSlides --ihc_type CD3CD20 --mapping_file ../../ihc_mapping.json
-      --mask_extension .tif --remote_path /media/AprioricsSlides --slide_extension
-      .svs --seed 42 --patch_size 256 --level 0 --gpu 0 --batch_size 32 --lr 0.0002
-      --wd 0.01 --epochs 1 --num_workers 32 --scheduler one-cycle --model unet/resnet50
-      --loss bce --fold 0 --p_pos 0.8 --data_step 1 --data_type segmentation --splitfile
-      splits.csv --base_size 256 --slidefolder /data/anapath/AprioricsSlides/slides
-      --maskfolder /data/anapath/AprioricsSlides/masks --trainfolder /data/anapath/AprioricsSlides/train
+    cmd: python train_segmentation.py --hash_file .model_hash.yaml --data_path /data/anapath/AprioricsSlides
+      --ihc_type CD3CD20 --mapping_file ../../ihc_mapping.json --mask_extension .tif
+      --remote_path /media/AprioricsSlides --slide_extension .svs --seed 42 --patch_size
+      256 --level 0 --gpu 0 --batch_size 32 --lr 0.0002 --wd 0.1 --epochs 1 --num_workers
+      32 --scheduler one-cycle --model unet/resnet50 --loss bce --fold 0 --p_pos 0.8
+      --data_step 1 --data_type segmentation --splitfile splits.csv --base_size 256
+      --slidefolder /data/anapath/AprioricsSlides/slides --maskfolder /data/anapath/AprioricsSlides/masks
+      --trainfolder /data/anapath/AprioricsSlides/train
     deps:
     - path: /data/anapath/AprioricsSlides/train/CD3CD20/256_0/patch_csvs
       md5: 2f78eff052b752765681a652fae7dd82.dir
@@ -59,12 +59,12 @@ stages:
       size: 15819
     outs:
     - path: .model_hash.yaml
-      md5: 69275903b4e8ecacf273c2d1fd620f7c
+      md5: caac268fcb2e9ef922489e5e8e4d8d74
       size: 38
     - path: /data/anapath/AprioricsSlides/train/logs
-      md5: 97ab460227e673b102bc79989cbb88de.dir
-      size: 65642799768
-      nfiles: 85
+      md5: 681cf46e7f81216385b4a2978f95c6f1.dir
+      size: 68547831021
+      nfiles: 88
   evaluate:
     cmd: python predict_export_geojsons.py --hash_file .model_hash.yaml --outfolder
       /data/anapath/AprioricsSlides/evaluate --slidefolder /data/anapath/AprioricsSlides/slides
@@ -72,22 +72,22 @@ stages:
       --splitfile splits.csv --base_size 256 --data_path /data/anapath/AprioricsSlides
       --ihc_type CD3CD20 --mapping_file ../../ihc_mapping.json --mask_extension .tif
       --remote_path /media/AprioricsSlides --slide_extension .svs --seed 42 --patch_size
-      256 --level 0 --gpu 0 --batch_size 32 --lr 0.0002 --wd 0.01 --epochs 1 --num_workers
+      256 --level 0 --gpu 0 --batch_size 32 --lr 0.0002 --wd 0.1 --epochs 1 --num_workers
       32 --scheduler one-cycle --model unet/resnet50 --loss bce --fold 0 --p_pos 0.8
       --data_step 1 --data_type segmentation --area_threshold 100 --test_fold test
     deps:
     - path: .model_hash.yaml
-      md5: 69275903b4e8ecacf273c2d1fd620f7c
+      md5: caac268fcb2e9ef922489e5e8e4d8d74
       size: 38
     - path: /data/anapath/AprioricsSlides/train/logs
-      md5: 97ab460227e673b102bc79989cbb88de.dir
-      size: 65642799768
-      nfiles: 85
+      md5: 681cf46e7f81216385b4a2978f95c6f1.dir
+      size: 68547831021
+      nfiles: 88
     outs:
     - path: /data/anapath/AprioricsSlides/evaluate/CD3CD20/
-      md5: 04f9a920ebd3c42b3054000318034f9f.dir
-      size: 2800859379
-      nfiles: 168
+      md5: 97a290dc12b22d08607027fda3a9f613.dir
+      size: 5181893938
+      nfiles: 317
   geojson_upload:
     cmd: python ../utils/file_transfer.py --data-path /media/AprioricsSlides --remote-path
       /data/anapath/AprioricsSlides --ihc-type PHH3 --mapping-file ../../ihc_mapping.json
@@ -102,6 +102,6 @@ stages:
     cmd: rsync -avu /data/anapath/AprioricsSlides/evaluate/CD3CD20/ /media/AprioricsSlides/evaluate/CD3CD20/
     deps:
     - path: /data/anapath/AprioricsSlides/evaluate/CD3CD20/
-      md5: 04f9a920ebd3c42b3054000318034f9f.dir
-      size: 2800859379
-      nfiles: 168
+      md5: 97a290dc12b22d08607027fda3a9f613.dir
+      size: 5181893938
+      nfiles: 317
