@@ -38,7 +38,7 @@ split:
   max_slide: 1288
 
 patches:
-  patch_size: 256
+  patch_size: 512
   level: 0
   overlap: 0.1
   filter_pos: 0
@@ -51,7 +51,7 @@ train:
   batch_size: 32
   lr: 2e-4
   wd: 0.1
-  epochs: 1
+  epochs: 4
   num_workers: 32
   scheduler: one-cycle
   model: unet/resnet50
@@ -60,10 +60,10 @@ train:
   p_pos: 0.8
   data_step: 1
   data_type: segmentation
-  augment_stain: true
+  augment_stain: false
   log_offline: true
   p_augment: 0.5
-  transforms: base
+  transforms: hovernet
 
 evaluate:
   area_threshold: 500
