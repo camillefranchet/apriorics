@@ -297,6 +297,11 @@ if __name__ == "__main__":
         step=args.data_step,
     )
 
+    train_val_text = "=================Train=================\n"
+    train_val_text += "\n".join(map(lambda x: x.stem, slide_paths[train_idxs]))
+    train_val_text += "\n\n=================Valid=================\n"
+    train_val_text += "\n".join(map(lambda x: x.stem, slide_paths[val_idxs]))
+
     train_dl = DataLoader(
         train_ds,
         batch_size=args.batch_size,
@@ -384,6 +389,7 @@ if __name__ == "__main__":
     )
 
     exp = logger.experiment
+    exp.log_text(train_val_text)
     trainer = pl.Trainer(
         gpus=1 if args.horovod else [args.gpu],
         min_epochs=args.epochs,
