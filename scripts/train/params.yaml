@@ -60,7 +60,7 @@ train:
   p_pos: 0.8
   data_step: 1
   data_type: segmentation
-  augment_stain: false
+  augment_stain: true
   p_augment: 0.5
   transforms: hovernet
 
