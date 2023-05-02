@@ -43,6 +43,7 @@ patches:
   overlap: 0.1
   filter_pos: 0
   overwrite: true
+  export_geojson: true
 
 train:
   patch_size: 256
