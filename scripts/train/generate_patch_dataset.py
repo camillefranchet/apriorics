@@ -1,15 +1,20 @@
 import csv
+import json
 from argparse import ArgumentParser
 from multiprocessing import Pool
 from pathlib import Path
 
+import geopandas
 import numpy as np
-from pathaia.patches import filter_thumbnail
 from pathaia.patches.functional_api import slide_rois_no_image
 from pathaia.util.paths import get_files
 from pathaia.util.types import Patch, Slide
 from scipy.sparse import load_npz
+from shapely.geometry import MultiPolygon, Polygon, box
+from shapely.ops import unary_union
 from skimage.morphology import remove_small_objects
+
+from apriorics.dataset_preparation import filter_thumbnail
 
 parser = ArgumentParser(prog="Generates the PathAIA patch CSVs for slides.")
 parser.add_argument(
@@ -87,6 +92,11 @@ parser.add_argument(
     type=int,
     help="Number of workers to use for processing. Defaults to all available workers.",
 )
+parser.add_argument(
+    "--export_geojson",
+    action="store_true",
+    help="Specify to save geojson representation of patch extractions. Optional.",
+)
 
 
 if __name__ == "__main__":
@@ -101,10 +111,18 @@ if __name__ == "__main__":
     outfolder = (
         args.outfolder / args.ihc_type / f"{args.patch_size}_{args.level}/patch_csvs"
     )
-
-    interval = -int(args.overlap * args.patch_size)
     if not outfolder.exists():
         outfolder.mkdir(parents=True)
+
+    geojsonfolder = (
+        args.outfolder
+        / args.ihc_type
+        / f"{args.patch_size}_{args.level}/patch_geojsons"
+    )
+    if args.export_geojson and not geojsonfolder.exists():
+        geojsonfolder.mkdir()
+
+    interval = -int(args.overlap * args.patch_size)
 
     def write_patches(in_file_path):
         out_file_path = outfolder / in_file_path.with_suffix(".csv").name
@@ -137,6 +155,7 @@ if __name__ == "__main__":
             thumb_size=2000,
         )
 
+        pols = []
         with open(out_file_path, "w") as out_file:
             writer = csv.DictWriter(out_file, fieldnames=Patch.get_fields() + ["n_pos"])
             writer.writeheader()
@@ -165,6 +184,19 @@ if __name__ == "__main__":
                 row["n_pos"] = n_pos
                 if n_pos is None or n_pos >= args.filter_pos:
                     writer.writerow(row)
+                    if args.export_geojson:
+                        x, y = patch.position
+                        w, h = patch.size
+                        pols.append(box(x, y, x + w, y + h))
+
+        if args.export_geojson:
+            pols = unary_union(pols)
+            if isinstance(pols, Polygon):
+                pols = MultiPolygon([pols])
+            with open(
+                geojsonfolder / in_file_path.with_suffix(".geojson").name, "w"
+            ) as f:
+                json.dump(geopandas.GeoSeries(pols.geoms).__geo_interface__, f)
 
     with Pool(processes=args.num_workers) as pool:
         pool.map(write_patches, input_files)
