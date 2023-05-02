@@ -1,8 +1,10 @@
 from math import ceil
 from typing import Any, Dict, Optional, Sequence, Union
 
+import cv2
 import numpy as np
 from nptyping import NDArray
+from pathaia.patches.slide_filters import filter_remove_small_objects
 
 
 def split_data_k_fold(
@@ -156,3 +158,27 @@ def split_data_k_fold_batched(
         splits[i] = np.sort(np.concatenate(splits[i]))
 
     return splits
+
+
+def filter_thumbnail(x):
+    """
+    Compute a tissue mask from a slide thumbnail.
+
+    Filters background, red pen, blue pen using La*b* space.
+
+    Args:
+        x: input thumbnail as a numpy byte array.
+
+    Returns:
+        Numpy binary mask where usable tissue is marked as True.
+
+    """
+    x = cv2.cvtColor(x.astype(np.float32) / 255, cv2.COLOR_RGB2Lab)
+    l, a, b = x.transpose(2, 0, 1)
+    mask = (
+        ((a > 7) | ((a > 2) & (b > -13)) & (l > 40))
+        & ((a < 53) | (b < 93))
+        & (l < 98)
+        & (l > 10)
+    )
+    return filter_remove_small_objects(mask)
