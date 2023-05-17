@@ -1,9 +1,9 @@
 base:
-  data_path: /data/anapath/AprioricsSlides
+  data_path: /Users/camille/apriorics_data
   ihc_type: PHH3
   mapping_file: ../../ihc_mapping.json
   mask_extension: .npz
-  remote_path: /media/AprioricsSlides
+  remote_path: /Volumes/AprioricsSlides
   slide_extension: .svs
   seed: 42
 

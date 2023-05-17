@@ -2,8 +2,8 @@ schema: '2.0'
 stages:
   slide_download:
     cmd: python ../utils/file_transfer.py --out-csv .downloaded_slides.csv --data-path
-      '/data/anapath/AprioricsSlides' --ihc-type 'PHH3' --mapping-file '../../ihc_mapping.json'
-      --mask-extension '.tif' --remote-path '/media/AprioricsSlides' --slide-extension
+      '/Users/camille/apriorics_data' --ihc-type 'PHH3' --mapping-file '../../ihc_mapping.json'
+      --mask-extension '.tif' --remote-path '/Volumes/AprioricsSlides' --slide-extension
       '.svs' --seed 42 --clean-previous --extension .svs --rel-path slides --remote-rel-path
       .
     outs:
@@ -11,67 +11,67 @@ stages:
       md5: b22086e2f3720da570407aeff2b49b12
       size: 67649
   generate_patch_csvs:
-    cmd: python generate_patch_dataset.py --data_path /data/anapath/AprioricsSlides
+    cmd: python generate_patch_dataset.py --data_path /Users/camille/apriorics_data
       --ihc_type PHH3 --mapping_file ../../ihc_mapping.json --mask_extension .npz
-      --remote_path /media/AprioricsSlides --slide_extension .svs --seed 42 --patch_size
-      128 --level 0 --overlap 0.1 --filter_pos 0 --overwrite --slidefolder /data/anapath/AprioricsSlides/slides
-      --maskfolder /data/anapath/AprioricsSlides/masks --outfolder /data/anapath/AprioricsSlides/train
+      --remote_path /Volumes/AprioricsSlides --slide_extension .svs --seed 42 --patch_size
+      128 --level 0 --overlap 0.1 --filter_pos 0 --overwrite --slidefolder /Users/camille/apriorics_data/slides
+      --maskfolder /Users/camille/apriorics_data/masks --outfolder /Users/camille/apriorics_data/train
     deps:
     - path: .downloaded_slides.csv
       md5: b22086e2f3720da570407aeff2b49b12
       size: 67649
-    - path: /data/anapath/AprioricsSlides/masks/PHH3
+    - path: /Users/camille/apriorics_data/masks/PHH3
       md5: db61f4928484cc28790423c53ffdf47d.dir
       size: 11763931
       nfiles: 485
     outs:
-    - path: /data/anapath/AprioricsSlides/train/PHH3/128_0/patch_csvs
+    - path: /Users/camille/apriorics_data/train/PHH3/128_0/patch_csvs
       md5: 32e7f57e5ec810e2c36569b86098c42e.dir
       size: 4648579212
       nfiles: 485
   split_dataset:
-    cmd: python split_full_dataset.py --out_csv /data/anapath/AprioricsSlides/train/splits.csv
-      --locked_test_file /data/anapath/AprioricsSlides/train/pam50_slides.txt --data_path
-      /data/anapath/AprioricsSlides --ihc_type PHH3 --mapping_file ../../ihc_mapping.json
-      --mask_extension .npz --remote_path /media/AprioricsSlides --slide_extension
+    cmd: python split_full_dataset.py --out_csv /Users/camille/apriorics_data/train/splits.csv
+      --locked_test_file /Users/camille/apriorics_data/train/pam50_slides.txt --data_path
+      /Users/camille/apriorics_data --ihc_type PHH3 --mapping_file ../../ihc_mapping.json
+      --mask_extension .npz --remote_path /Volumes/AprioricsSlides --slide_extension
       .svs --seed 42 --nfolds 5 --test_ratio 0.1 --update --filename splits.csv --locked_test_filename
       pam50_slides.txt --min_slide 4 --max_slide 1288
     outs:
-    - path: /data/anapath/AprioricsSlides/train/splits.csv
+    - path: /Users/camille/apriorics_data/train/splits.csv
       md5: bc15256060dfdce2f06a9b524b162b86
       size: 15819
   train:
-    cmd: python train_segmentation.py --hash_file .model_hash.yaml --data_path /data/anapath/AprioricsSlides
+    cmd: python train_segmentation.py --hash_file .model_hash.yaml --data_path /Users/camille/apriorics_data
       --ihc_type PHH3 --mapping_file ../../ihc_mapping.json --mask_extension .npz
-      --remote_path /media/AprioricsSlides --slide_extension .svs --seed 42 --patch_size
+      --remote_path /Volumes/AprioricsSlides --slide_extension .svs --seed 42 --patch_size
       256 --level 0 --gpu 1 --batch_size 32 --lr 0.0002 --wd 0.01 --epochs 20 --num_workers
       32 --scheduler one-cycle --model unet/resnet50 --loss bce --fold 0 --p_pos 0.5
       --data_step 1 --data_type segmentation_sparse --splitfile splits.csv --base_size
-      256 --slidefolder /data/anapath/AprioricsSlides/slides --maskfolder /data/anapath/AprioricsSlides/masks
-      --trainfolder /data/anapath/AprioricsSlides/train
+      256 --slidefolder /Users/camille/apriorics_data/slides --maskfolder /Users/camille/apriorics_data/masks
+      --trainfolder /Users/camille/apriorics_data/train
     deps:
-    - path: /data/anapath/AprioricsSlides/train/PHH3/256_0/patch_csvs
+    - path: /Users/camille/apriorics_data/train/PHH3/256_0/patch_csvs
       md5: 48cb7b78f3691ec1585140259b73a3bb.dir
       size: 1149062937
       nfiles: 485
-    - path: /data/anapath/AprioricsSlides/train/PHH3/splits.csv
+    - path: /Users/camille/apriorics_data/train/PHH3/splits.csv
       md5: c01938788372b60bab4e023a69c64067
       size: 5979
     outs:
     - path: .model_hash.yaml
       md5: 19d66c413a693fc7c5430dd91f3c707a
       size: 38
-    - path: /data/anapath/AprioricsSlides/train/logs
+    - path: /Users/camille/apriorics_data/train/logs
       md5: 94fb52c0a2ce9deeb8d2bbf2701226cf.dir
       size: 57657349125
       nfiles: 76
   evaluate:
     cmd: python predict_export_geojsons.py --hash_file .model_hash.yaml --outfolder
-      /data/anapath/AprioricsSlides/evaluate --slidefolder /data/anapath/AprioricsSlides/slides
-      --maskfolder /data/anapath/AprioricsSlides/masks --trainfolder /data/anapath/AprioricsSlides/train
-      --splitfile splits.csv --base_size 256 --data_path /data/anapath/AprioricsSlides
+      /Users/camille/apriorics_data/evaluate --slidefolder /Users/camille/apriorics_data/slides
+      --maskfolder /Users/camille/apriorics_data/masks --trainfolder /Users/camille/apriorics_data/train
+      --splitfile splits.csv --base_size 256 --data_path /Users/camille/apriorics_data
       --ihc_type PHH3 --mapping_file ../../ihc_mapping.json --mask_extension .npz
-      --remote_path /media/AprioricsSlides --slide_extension .svs --seed 42 --patch_size
+      --remote_path /Volumes/AprioricsSlides --slide_extension .svs --seed 42 --patch_size
       256 --level 0 --gpu 1 --batch_size 32 --lr 0.0002 --wd 0.01 --epochs 20 --num_workers
       32 --scheduler one-cycle --model unet/resnet50 --loss bce --fold 0 --p_pos 0.5
       --data_step 1 --data_type segmentation_sparse --area_threshold 50 --test_fold
@@ -80,19 +80,19 @@ stages:
     - path: .model_hash.yaml
       md5: 19d66c413a693fc7c5430dd91f3c707a
       size: 38
-    - path: /data/anapath/AprioricsSlides/train/logs
+    - path: /Users/camille/apriorics_data/train/logs
       md5: 94fb52c0a2ce9deeb8d2bbf2701226cf.dir
       size: 57657349125
       nfiles: 76
     outs:
-    - path: /data/anapath/AprioricsSlides/evaluate/PHH3/
+    - path: /Users/camille/apriorics_data/evaluate/PHH3/
       md5: 9b4de07fba05874d7455aa42e2c1f0ea.dir
       size: 2869718653
       nfiles: 1438
   evaluate_upload:
-    cmd: rsync -avu /data/anapath/AprioricsSlides/evaluate/PHH3/ /media/AprioricsSlides/evaluate/PHH3/
+    cmd: rsync -avu /Users/camille/apriorics_data/evaluate/PHH3/ /Volumes/AprioricsSlides/evaluate/PHH3/
     deps:
-    - path: /data/anapath/AprioricsSlides/evaluate/PHH3/
+    - path: /Users/camille/apriorics_data/evaluate/PHH3/
       md5: 9b4de07fba05874d7455aa42e2c1f0ea.dir
       size: 2869718653
       nfiles: 1438

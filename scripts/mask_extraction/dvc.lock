@@ -2,8 +2,8 @@ schema: '2.0'
 stages:
   slide_download:
     cmd: python ../utils/file_transfer.py --out-csv .downloaded_slides.csv --data-path
-      '/data/anapath/AprioricsSlides' --ihc-type 'PHH3' --mapping-file '../../ihc_mapping.json'
-      --mask-extension '.tif' --remote-path '/media/AprioricsSlides' --slide-extension
+      '/Users/camille/apriorics_data' --ihc-type 'PHH3' --mapping-file '../../ihc_mapping.json'
+      --mask-extension '.tif' --remote-path '/Volumes/AprioricsSlides' --slide-extension
       '.svs' --clean-previous --import-ihc --extension .svs --rel-path slides --remote-rel-path
       .
     outs:
@@ -11,9 +11,9 @@ stages:
       md5: a9cd34b77800068fa1ad8eff1ce98fb9
       size: 134370
   mask_extraction:
-    cmd: python register_extract_polygons_masks_mp.py --data-path '/data/anapath/AprioricsSlides'
+    cmd: python register_extract_polygons_masks_mp.py --data-path '/Users/camille/apriorics_data'
       --ihc-type 'PHH3' --mapping-file '../../ihc_mapping.json' --mask-extension '.tif'
-      --remote-path '/media/AprioricsSlides' --slide-extension '.svs' --dab-thr 0.04
+      --remote-path '/Volumes/AprioricsSlides' --slide-extension '.svs' --dab-thr 0.04
       --object-min-size 50 --binary-op 'none' --mask-path 'masks' --slide-path 'slides'
       --wkt-path 'wkts' --geojson-path 'geojsons'
     deps:
@@ -21,44 +21,44 @@ stages:
       md5: a9cd34b77800068fa1ad8eff1ce98fb9
       size: 134370
     outs:
-    - path: /data/anapath/AprioricsSlides/masks/PHH3
+    - path: /Users/camille/apriorics_data/masks/PHH3
       md5: db61f4928484cc28790423c53ffdf47d.dir
       size: 11763931
       nfiles: 485
-    - path: /data/anapath/AprioricsSlides/wkts/PHH3
+    - path: /Users/camille/apriorics_data/wkts/PHH3
       md5: 89f6e7d60ae95f9e5f727e1ad7a134cc.dir
       size: 24685177
       nfiles: 485
   wkt_to_geojson:
     cmd: python ../utils/wkt2geojsons.py --mask-path 'masks' --slide-path 'slides'
-      --wkt-path 'wkts' --geojson-path 'geojsons' --data-path /data/anapath/AprioricsSlides
+      --wkt-path 'wkts' --geojson-path 'geojsons' --data-path /Users/camille/apriorics_data
       --ihc-type PHH3
     deps:
-    - path: /data/anapath/AprioricsSlides/wkts/PHH3
+    - path: /Users/camille/apriorics_data/wkts/PHH3
       md5: 89f6e7d60ae95f9e5f727e1ad7a134cc.dir
       size: 24685177
       nfiles: 485
     outs:
-    - path: /data/anapath/AprioricsSlides/geojsons/PHH3
+    - path: /Users/camille/apriorics_data/geojsons/PHH3
       md5: 0cf6564d7dc19816e5e95799793f2b3d.dir
       size: 140563348
       nfiles: 485
   geojson_upload:
-    cmd: python ../utils/file_transfer.py --data-path /media/AprioricsSlides --remote-path
-      /data/anapath/AprioricsSlides --ihc-type PHH3 --mapping-file ../../ihc_mapping.json
+    cmd: python ../utils/file_transfer.py --data-path /Volumes/AprioricsSlides --remote-path
+      /Users/camille/apriorics_data --ihc-type PHH3 --mapping-file ../../ihc_mapping.json
       --recurse --extension .geojson --rel-path geojsons --remote-rel-path geojsons
       --add-tree
     deps:
-    - path: /data/anapath/AprioricsSlides/geojsons/PHH3
+    - path: /Users/camille/apriorics_data/geojsons/PHH3
       md5: 0cf6564d7dc19816e5e95799793f2b3d.dir
       size: 140563348
       nfiles: 485
   mask_upload:
-    cmd: python ../utils/file_transfer.py --data-path /media/AprioricsSlides --remote-path
-      /data/anapath/AprioricsSlides --ihc-type PHH3 --mapping-file ../../ihc_mapping.json
+    cmd: python ../utils/file_transfer.py --data-path /Volumes/AprioricsSlides --remote-path
+      /Users/camille/apriorics_data --ihc-type PHH3 --mapping-file ../../ihc_mapping.json
       --recurse --extension .tif --rel-path masks --remote-rel-path masks
     deps:
-    - path: /data/anapath/AprioricsSlides/masks/PHH3
+    - path: /Users/camille/apriorics_data/masks/PHH3
       md5: 951222c874246fb4382aab3e2a054872.dir
       size: 193781204068
       nfiles: 386
