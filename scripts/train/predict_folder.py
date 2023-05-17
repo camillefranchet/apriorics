@@ -116,7 +116,7 @@ parser.add_argument(
 )
 parser.add_argument(
     "--version",
-    help="Yaml file containing the hash (=version) of the model to load weights from.",
+    help="Hash (=version) of the model to load weights from.",
     required=True,
 )
 parser.add_argument(
@@ -168,7 +168,7 @@ if __name__ == "__main__":
     else:
         encoder_name = None
 
-    device = torch.device(f"cuda:{args.gpu}")
+    device = torch.device(f"mps")
     model = create_model(
         model[0],
         encoder_name=encoder_name,
@@ -235,6 +235,7 @@ if __name__ == "__main__":
                 slide_path,
                 patches_path,
                 transforms=[Crop(*crop), ToTensor()],
+                slide_backend="openslide"
             )
             dl = DataLoader(
                 ds,

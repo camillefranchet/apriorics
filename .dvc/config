@@ -2,9 +2,9 @@
     autostage = true
     remote = AprioricsSlides
 ['remote "AprioricsSlides"']
-    url = /media/AprioricsSlides/.cache
+    url = /Volumes/AprioricsSlides/.cache
 ['remote "cache"']
-    url = /data/anapath/AprioricsSlides/.cache
+    url = /Users/camille/apriorics_data/.cache
 [cache]
     local = cache
     type = hardlink,symlink
